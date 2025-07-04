@@ -99,5 +99,4 @@ public class UserController {
     public ResponseEntity<String> checkToken(){
         return userService.checkToken();
     }
-
 }
