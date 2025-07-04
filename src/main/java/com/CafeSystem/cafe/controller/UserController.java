@@ -100,8 +100,4 @@ public class UserController {
         return userService.checkToken();
     }
 
-    @GetMapping("test")
-    public ResponseEntity<String> test (){
-        return new ResponseEntity<>("success Test" , HttpStatus.OK);
-    }
 }
