@@ -1,9 +1,7 @@
 package com.CafeSystem.cafe.controller;
 
 import com.CafeSystem.cafe.dto.*;
-import com.CafeSystem.cafe.exception.HandleException;
-import com.CafeSystem.cafe.model.PasswordResetToken;
-import com.CafeSystem.cafe.model.User;
+import com.CafeSystem.cafe.dto.ApiResponse;
 import com.CafeSystem.cafe.repository.PasswordResetTokenRepository;
 import com.CafeSystem.cafe.repository.UserRepository;
 import com.CafeSystem.cafe.service.AuthUserService;
@@ -17,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.util.Date;
 
 @Tag(name = "Authentication User Controller", description = "Create a new account and log in," +
         " forget your password and change your password")

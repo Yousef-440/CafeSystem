@@ -1,6 +1,7 @@
 package com.CafeSystem.cafe.service;
 
 import com.CafeSystem.cafe.dto.*;
+import com.CafeSystem.cafe.dto.ApiResponse;
 import jakarta.mail.MessagingException;
 import org.springframework.http.ResponseEntity;
 

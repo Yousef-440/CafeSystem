@@ -1,6 +1,7 @@
 package com.CafeSystem.cafe.service.serviceImpl;
 
 import com.CafeSystem.cafe.dto.*;
+import com.CafeSystem.cafe.dto.ApiResponse;
 import com.CafeSystem.cafe.enumType.RoleType;
 import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.mapper.UserMapper;
@@ -9,7 +10,6 @@ import com.CafeSystem.cafe.model.User;
 import com.CafeSystem.cafe.repository.PasswordResetTokenRepository;
 import com.CafeSystem.cafe.repository.UserRepository;
 import com.CafeSystem.cafe.security.CustomUserDetails;
-import com.CafeSystem.cafe.security.JwtAuthFilter;
 import com.CafeSystem.cafe.security.JwtGenerator;
 import com.CafeSystem.cafe.service.AuthUserService;
 import com.CafeSystem.cafe.service.email.EmailService;

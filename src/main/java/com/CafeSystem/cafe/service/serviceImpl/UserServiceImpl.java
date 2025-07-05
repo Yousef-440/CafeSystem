@@ -1,6 +1,7 @@
 package com.CafeSystem.cafe.service.serviceImpl;
 
 import com.CafeSystem.cafe.dto.*;
+import com.CafeSystem.cafe.dto.ApiResponse;
 import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.model.User;
 import com.CafeSystem.cafe.repository.UserRepository;
@@ -13,7 +14,6 @@ import com.CafeSystem.cafe.utils.CurrentUserUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -25,7 +25,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
