@@ -50,17 +50,31 @@ public class AuthUserController {
     }
 
 
+    @Operation(
+            summary = "change the password",
+            description = "Change password using old password verification"
+    )
     @PostMapping(path = "/changePassword")
     public ResponseEntity<String> changePassword(@RequestBody PasswordChangeRequest passwordChangeRequest){
         return userService.changePassword(passwordChangeRequest);
     }
 
+    @Operation(
+            summary = "forgot password",
+            description = "Forgetting the password is done by verifying the email and sending" +
+                    " a token to this email and placing this token in restPassword endpoint."
+    )
     @PostMapping(path = "/forgotPassword")
     public ResponseEntity<String> forgotPassword(@RequestBody EmailRequest emailRequest) throws MessagingException, IOException {
         return userService.forgotPassword(emailRequest.getEmail());
     }
 
-    @PostMapping(path = "/restPassword")
+    @Operation(
+            summary = "rest password",
+            description = "The password is changed," +
+                    " but you must ensure the token is used if you forget the password."
+    )
+    @PostMapping(path = "/resetPassword")
     public ResponseEntity<String> restPassword(
             @RequestParam String passwordRestToken,
             @RequestBody PasswordResetRequest passwordResetRequest){
