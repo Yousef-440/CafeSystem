@@ -150,19 +150,34 @@ public class AuthUserServiceImpl implements AuthUserService {
 
     @Override
     public ResponseEntity<String> changePassword(PasswordChangeRequest passwordChangeRequest) {
+        log.info("changePassword Function Started");
         try {
             User user = currentUserUtil.getCurrentUser()
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             if (passwordEncoder.matches(passwordChangeRequest.getOldPassword(), user.getPassword())) {
+                log.info(" Password updated successfully for user: {}", user.getEmail());
+
+                if (passwordChangeRequest.getOldPassword().equals(passwordChangeRequest.getNewPassword())) {
+                    log.warn("New password matches the old password for user: {}", user.getEmail());
+                    return CafeUtil.getResponseEntity("New password must be different from old password.",
+                            HttpStatus.BAD_REQUEST);
+                }
+
                 user.setPassword(passwordEncoder.encode(passwordChangeRequest.getNewPassword()));
                 userRepository.save(user);
+                emailService.sendWhenChangePassword(user.getEmail());
                 return CafeUtil.getResponseEntity("Password Updated Successfully", HttpStatus.OK);
-            } else {
-                return CafeUtil.getResponseEntity("Incorrect Old Password", HttpStatus.BAD_REQUEST);
-            }
 
+            } else {
+
+                log.info("Incorrect old password attempt for user: {}",user.getEmail());
+                return CafeUtil.getResponseEntity("Incorrect old password. Please try again",
+                        HttpStatus.BAD_REQUEST);
+
+            }
         }catch (Exception ex){
+            log.error("Error occurred while changing password for user: {}", ex.getMessage(), ex);
             ex.printStackTrace();
         }
         return CafeUtil.getResponseEntity("Something Went Wrong", HttpStatus.BAD_REQUEST);

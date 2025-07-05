@@ -95,4 +95,21 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    public void sendWhenChangePassword(String to){
+        SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setFrom(fromEmail);
+        mailMessage.setTo(to);
+        mailMessage.setSubject("Password change successfully");
+        mailMessage.setText("Hello,\n" +
+                "\n" +
+                "Your password was successfully updated. If you did not make this change, please contact our support team immediately.\n" +
+                "\n" +
+                "Stay secure,\n" +
+                "Cafe System Team" +
+                "\n");
+
+        mailSender.send(mailMessage);
+
+    }
+
 }

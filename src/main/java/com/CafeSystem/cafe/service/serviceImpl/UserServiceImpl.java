@@ -218,7 +218,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ResponseEntity<String> checkToken() {
-        return CafeUtil.getResponseEntity("True", HttpStatus.OK);
+        return CafeUtil.getResponseEntity(" Token is valid", HttpStatus.OK);
     }
 
     private UserProfileDto mapToUserProfileDto(User user) {
