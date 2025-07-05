@@ -1,5 +1,6 @@
 package com.CafeSystem.cafe.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -14,18 +15,37 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class UserDto {
+
+    @Schema(
+            description = "Full name of the user. Must be between 3 and 25 characters.",
+            example = "Yousef"
+    )
     @NotBlank(message = "Please fill in the name")
     @Size(min = 3, max = 25, message = "Name must be between 3 and 25 characters")
     private String name;
 
+    @Schema(
+            description = "Valid email address of the user.",
+            example = "someone...@example.com"
+    )
     @NotBlank(message = "Please fill in the email")
     @Email(message = "Email format is invalid")
     private String email;
 
+    @Schema(
+            description = "User's contact number. Must be exactly 10 digits.",
+            example = "079......."
+    )
     @NotBlank(message = "Please fill in the contact-number ")
     @Pattern(regexp = "^[0-9]{10}$", message = "Contact number must contain 10 digits")
     private String contactNumber;
 
+    @Schema(
+            description = "Secure password. Must include at least one digit," +
+                    " one lowercase letter, one uppercase letter," +
+                    " and one special character. Length between 6 and 20 characters.",
+            example = "Pass@123"
+    )
     @NotBlank(message = "Please fill in the password")
     @Size(min = 6, max = 20, message = "Password must be between 6 and 20 characters")
     @Pattern(
