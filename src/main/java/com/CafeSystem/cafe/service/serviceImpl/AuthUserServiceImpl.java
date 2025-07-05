@@ -4,7 +4,9 @@ import com.CafeSystem.cafe.dto.*;
 import com.CafeSystem.cafe.enumType.RoleType;
 import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.mapper.UserMapper;
+import com.CafeSystem.cafe.model.PasswordResetToken;
 import com.CafeSystem.cafe.model.User;
+import com.CafeSystem.cafe.repository.PasswordResetTokenRepository;
 import com.CafeSystem.cafe.repository.UserRepository;
 import com.CafeSystem.cafe.security.CustomUserDetails;
 import com.CafeSystem.cafe.security.JwtAuthFilter;
@@ -22,11 +24,12 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.util.Date;
 import java.util.Optional;
 
 @Slf4j
@@ -34,24 +37,23 @@ import java.util.Optional;
 public class AuthUserServiceImpl implements AuthUserService {
 
     @Autowired
-    private UserRepository userRepository;//
+    private UserRepository userRepository;
     @Autowired
-    private UserMapper userMapper;//
+    private UserMapper userMapper;
     @Autowired
-    private PasswordEncoder passwordEncoder;//
+    private PasswordEncoder passwordEncoder;
     @Autowired
-    private AuthenticationManager authenticationManager;//
+    private AuthenticationManager authenticationManager;
     @Autowired
-    private JwtGenerator jwtGenerator;//
-    @Autowired
-    private JwtAuthFilter jwtAuthFilter;
-
+    private JwtGenerator jwtGenerator;
     @Autowired
     private CurrentUserUtil currentUserUtil;
     @Autowired
-    private EmailService emailService;//
+    private EmailService emailService;
     @Autowired
     private PasswordResetService passwordResetService;
+    @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Override
     @Transactional
@@ -184,22 +186,41 @@ public class AuthUserServiceImpl implements AuthUserService {
     }
 
     @Override
-    public ResponseEntity<String> forgotPassword(String email) throws MessagingException {
+    public ResponseEntity<String> forgotPassword(String email) throws MessagingException, IOException {
 
         User user = userRepository.findByEmail(email.trim())
                 .orElseThrow(() -> new HandleException("Sorry, Email Not Found"));
-
-        System.out.println(user.getName());
         
-        if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+        if (user.getEmail() != null) {
             emailService.sendResetLink(
                     user.getEmail(),
                     passwordResetService.createRestToken(user)
             );
+            log.info("Password reset link sent to: {}", user.getEmail());
             return CafeUtil.getResponseEntity("Check Your Email", HttpStatus.OK);
         }
 
         return CafeUtil.getResponseEntity("User Email is Invalid", HttpStatus.BAD_REQUEST);
+    }
+
+    @Override
+    public ResponseEntity<String> resetPassword(String passwordRestToken, String newPass) {
+        PasswordResetToken token =
+                passwordResetTokenRepository.findByToken(passwordRestToken).orElseThrow(
+                        ()->new HandleException("Invalid Token")
+                );
+
+        if (token.getExpiryDate().before(new Date())) {
+            return ResponseEntity.badRequest().body("Token expired");
+        }
+
+        User user = token.getUser();
+        user.setPassword(passwordEncoder.encode(newPass));
+        userRepository.save(user);
+
+        passwordResetTokenRepository.delete(token);
+
+        return ResponseEntity.ok("Password successfully reset");
     }
 
     private User convertDtoToEntity(UserDto userDto) {

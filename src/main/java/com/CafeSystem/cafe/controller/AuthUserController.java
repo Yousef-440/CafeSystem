@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.Date;
 
 @Tag(name = "Authentication User Controller", description = "Create a new account and log in," +
@@ -55,27 +56,14 @@ public class AuthUserController {
     }
 
     @PostMapping(path = "/forgotPassword")
-    public ResponseEntity<String> forgotPassword(@RequestBody EmailRequest emailRequest) throws MessagingException {
+    public ResponseEntity<String> forgotPassword(@RequestBody EmailRequest emailRequest) throws MessagingException, IOException {
         return userService.forgotPassword(emailRequest.getEmail());
     }
 
     @PostMapping(path = "/restPassword")
-    public ResponseEntity<String> restPassword(@RequestBody PasswordResetRequest passwordResetRequest){
-       PasswordResetToken token =
-               passwordResetTokenRepository.findByToken(passwordResetRequest.getToken()).orElseThrow(
-                       ()->new HandleException("Invalid Token")
-               );
-
-        if (token.getExpiryDate().before(new Date())) {
-            return ResponseEntity.badRequest().body("Token expired");
-        }
-
-        User user = token.getUser();
-        user.setPassword(passwordEncoder.encode(passwordResetRequest.getNewPassword()));
-        userRepository.save(user);
-
-        passwordResetTokenRepository.delete(token);
-
-        return ResponseEntity.ok("Password successfully reset");
+    public ResponseEntity<String> restPassword(
+            @RequestParam String passwordRestToken,
+            @RequestBody PasswordResetRequest passwordResetRequest){
+        return userService.resetPassword(passwordRestToken, passwordResetRequest.getNewPassword());
     }
 }

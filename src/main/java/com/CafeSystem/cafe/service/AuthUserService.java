@@ -4,6 +4,8 @@ import com.CafeSystem.cafe.dto.*;
 import jakarta.mail.MessagingException;
 import org.springframework.http.ResponseEntity;
 
+import java.io.IOException;
+
 public interface AuthUserService {
     ResponseEntity <ApiResponse<?>> signup(UserDto userDto) throws MessagingException;
 
@@ -11,5 +13,7 @@ public interface AuthUserService {
 
     ResponseEntity<String> changePassword(PasswordChangeRequest passwordChangeRequest);
 
-    ResponseEntity<String> forgotPassword(String email) throws MessagingException;
+    ResponseEntity<String> forgotPassword(String email) throws MessagingException, IOException;
+
+    ResponseEntity<String> resetPassword(String passwordRestToken, String newPass);
 }

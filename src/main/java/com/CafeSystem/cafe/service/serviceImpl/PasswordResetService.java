@@ -17,10 +17,11 @@ public class PasswordResetService {
     public String createRestToken(User user){
         String token = UUID.randomUUID().toString();
 
-        PasswordResetToken resetToken = new PasswordResetToken();
-        resetToken.setToken(token);
-        resetToken.setUser(user);
-        resetToken.setExpiryDate(new Date(System.currentTimeMillis() + 1000 * 60 * 15));
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .token(token)
+                .user(user)
+                .expiryDate(new Date(System.currentTimeMillis() + 1000 * 60 * 15))
+                .build();
 
         passwordResetTokenRepository.save(resetToken);
         return token;
