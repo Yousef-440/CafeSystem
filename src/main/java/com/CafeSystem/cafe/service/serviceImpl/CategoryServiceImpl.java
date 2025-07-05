@@ -1,6 +1,7 @@
 package com.CafeSystem.cafe.service.serviceImpl;
 
 import com.CafeSystem.cafe.dto.categoryDto.DtoCategory;
+import com.CafeSystem.cafe.dto.categoryDto.GetAllResponse;
 import com.CafeSystem.cafe.model.Category;
 import com.CafeSystem.cafe.repository.CategoryRepository;
 import com.CafeSystem.cafe.service.CategoryService;
@@ -11,6 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -44,5 +48,20 @@ public class CategoryServiceImpl implements CategoryService {
             log.error("Error occurred while adding category '{}'", dtoCategory.getName(), ex);
             return CafeUtil.getResponseEntity("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @Override
+    public ResponseEntity<List<GetAllResponse>> getAllCategory() {
+        List<Category> all = categoryRepository.findAll();
+
+        List<GetAllResponse> allDto = all.stream()
+                .map(category ->new GetAllResponse(
+                        category.getId(),
+                        category.getName(),
+                        category.getCreatedAt(),
+                        category.getModifiedAt()))
+                .toList();
+
+        return new ResponseEntity<>(allDto, HttpStatus.OK);
     }
 }
