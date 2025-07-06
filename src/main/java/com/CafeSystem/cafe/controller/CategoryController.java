@@ -1,9 +1,11 @@
 package com.CafeSystem.cafe.controller;
 
+import com.CafeSystem.cafe.dto.ApiResponse;
 import com.CafeSystem.cafe.dto.PaginatedResponse;
-import com.CafeSystem.cafe.dto.UserProfileDto;
 import com.CafeSystem.cafe.dto.categoryDto.DtoCategory;
 import com.CafeSystem.cafe.dto.categoryDto.GetAllResponse;
+import com.CafeSystem.cafe.dto.categoryDto.UpdateCategoryRequest;
+import com.CafeSystem.cafe.dto.categoryDto.UpdateCategoryResponseDto;
 import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.model.Category;
 import com.CafeSystem.cafe.service.CategoryService;
@@ -13,10 +15,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -31,9 +30,10 @@ import java.util.List;
 @Tag(name = "Category Controller", description = "It is a controller that " +
         "contains all the processes that belong to Category")
 
-@RequiredArgsConstructor
 public class CategoryController {
+    @Autowired
     private CategoryService categoryService;
+    @Autowired
     private CurrentUserUtil currentUserUtil;
 
     @Operation(
@@ -99,5 +99,23 @@ public class CategoryController {
         } catch (Exception ex) {
             throw new HandleException("Something Went Wrong");
         }
+    }
+
+    @Operation(
+            summary = "Update Category",
+            description = "Updated the Category by Admin"
+    )
+    @PutMapping(path = "/update/{id}")
+    public ResponseEntity<ApiResponse<UpdateCategoryResponseDto>> updateCategory(
+            @PathVariable("id") int id, @RequestBody UpdateCategoryRequest request){
+        return categoryService.update(request.getName(),id);
+    }
+
+    @Operation(
+            summary = "Delete Category"
+    )
+    @DeleteMapping("delete/{id}")
+    public ResponseEntity<String> deleteCategory(@PathVariable("id")int id){
+        return categoryService.deleteCategoryById(id);
     }
 }
