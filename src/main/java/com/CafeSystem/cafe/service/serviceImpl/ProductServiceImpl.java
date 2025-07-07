@@ -1,0 +1,74 @@
+package com.CafeSystem.cafe.service.serviceImpl;
+
+import com.CafeSystem.cafe.dto.ApiResponse;
+import com.CafeSystem.cafe.dto.productDto.ProductAddResponse;
+import com.CafeSystem.cafe.dto.productDto.ProductDto;
+import com.CafeSystem.cafe.exception.HandleException;
+import com.CafeSystem.cafe.mapper.UserMapper;
+import com.CafeSystem.cafe.model.Category;
+import com.CafeSystem.cafe.model.Product;
+import com.CafeSystem.cafe.repository.CategoryRepository;
+import com.CafeSystem.cafe.repository.ProductRepository;
+import com.CafeSystem.cafe.service.ProductService;
+import com.CafeSystem.cafe.utils.CurrentUserUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.mapper.Mapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
+@Service
+@Slf4j
+public class ProductServiceImpl implements ProductService {
+
+    @Autowired
+    private ProductRepository productRepository;
+    @Autowired
+    private CategoryRepository categoryRepository;
+    @Autowired
+    private CurrentUserUtil currentUserUtil;
+    @Autowired
+    private UserMapper userMapper;
+
+    @Override
+    public ResponseEntity<ApiResponse<ProductAddResponse>> addProduct(ProductDto productDto) {
+        log.info("AddProduct Function is Started");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if(!currentUserUtil.isAdmin()){
+            log.info("You do not have permission to access this resource for email: {}",
+                    authentication.getName());
+            throw new HandleException("only admins are allowed");
+        }
+
+        if (productRepository.existsByNameIgnoreCase(productDto.getName())) {
+            throw new HandleException("Product name already exists");
+        }
+
+        Category category = categoryRepository.findById(productDto.getCategoryId())
+                .orElseThrow(()->new HandleException("Sorry, Not Found"));
+
+        Product product = userMapper.toEntity(productDto);
+        product.setCategory(category);
+        product.setStatus("false");
+
+        productRepository.save(product);
+
+        ProductAddResponse added = ProductAddResponse.builder()
+                .nameProduct(product.getName())
+                .nameCategory(category.getName())
+                .createdAt(product.getCreatedAt())
+                .build();
+
+        String str = product.getName() + " product added successfully!";
+        ApiResponse<ProductAddResponse> res = ApiResponse.<ProductAddResponse>builder()
+                .status("success")
+                .message(str)
+                .data(added)
+                .build();
+
+        return new ResponseEntity<>(res, HttpStatus.OK);
+    }
+}
