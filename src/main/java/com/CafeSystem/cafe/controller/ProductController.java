@@ -2,9 +2,7 @@ package com.CafeSystem.cafe.controller;
 
 import com.CafeSystem.cafe.dto.ApiResponse;
 import com.CafeSystem.cafe.dto.PaginatedResponse;
-import com.CafeSystem.cafe.dto.productDto.GetAllProductResponse;
-import com.CafeSystem.cafe.dto.productDto.ProductAddResponse;
-import com.CafeSystem.cafe.dto.productDto.ProductDto;
+import com.CafeSystem.cafe.dto.productDto.*;
 import com.CafeSystem.cafe.service.ProductService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,5 +31,13 @@ public class ProductController {
             HttpServletRequest request
     ){
         return productService.getAllProduct(search,page,limit,request);
+    }
+
+    @PutMapping(path = "/updateProduct/{id}")
+    public ResponseEntity<ApiResponse<CompareData>>updateData(
+            @PathVariable("id")int id,
+            @RequestBody UpdateProductRequest productRequest){
+
+        return productService.updateProduct(id,productRequest);
     }
 }

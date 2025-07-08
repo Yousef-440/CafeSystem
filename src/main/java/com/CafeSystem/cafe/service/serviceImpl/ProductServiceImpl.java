@@ -2,10 +2,7 @@ package com.CafeSystem.cafe.service.serviceImpl;
 
 import com.CafeSystem.cafe.dto.ApiResponse;
 import com.CafeSystem.cafe.dto.PaginatedResponse;
-import com.CafeSystem.cafe.dto.categoryDto.GetAllResponse;
-import com.CafeSystem.cafe.dto.productDto.GetAllProductResponse;
-import com.CafeSystem.cafe.dto.productDto.ProductAddResponse;
-import com.CafeSystem.cafe.dto.productDto.ProductDto;
+import com.CafeSystem.cafe.dto.productDto.*;
 import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.mapper.UserMapper;
 import com.CafeSystem.cafe.model.Category;
@@ -21,13 +18,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -113,5 +107,55 @@ public class ProductServiceImpl implements ProductService {
                 "limit"
         );
             return ResponseEntity.ok(paginatedResponse);
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<CompareData>> updateProduct(int id, UpdateProductRequest productRequest) {
+        log.info("Update request received for product ID: {}", id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(()->
+                {
+                    log.warn("Product with ID {} not found", id);
+                    return new HandleException("Sorry, Product Not Found");
+                });
+
+        ProductUpdateResponse oldData = userMapper.convert(product);
+
+        boolean isUpdated = false;
+
+        if (productRequest.getName() != null) {
+            log.info("Updating product name from '{}' to '{}'",
+                    product.getName(), productRequest.getName());
+            product.setName(productRequest.getName());
+            isUpdated = true;
+        }
+
+        if (productRequest.getDescription() != null) {
+            log.info("Updating product description from '{}' to '{}'",
+                    product.getDescription(), productRequest.getDescription());
+            product.setDescription(productRequest.getDescription());
+            isUpdated = true;
+        }
+
+        if (!isUpdated) {
+            throw new HandleException("No data provided to update");
+        }
+        productRepository.save(product);
+        log.info("Product with ID {} updated successfully", id);
+
+        ProductUpdateResponse newData = userMapper.convert(product);
+
+        CompareData compareData = CompareData.builder()
+                .oldData(oldData)
+                .newData(newData)
+                .build();
+
+        ApiResponse<CompareData> response = ApiResponse.<CompareData>builder()
+                .status("Success")
+                .message("Update Product successfully")
+                .data(compareData)
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 }
