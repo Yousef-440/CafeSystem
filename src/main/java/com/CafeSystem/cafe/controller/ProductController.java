@@ -5,9 +5,12 @@ import com.CafeSystem.cafe.dto.PaginatedResponse;
 import com.CafeSystem.cafe.dto.productDto.*;
 import com.CafeSystem.cafe.service.ProductService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.hibernate.query.Page;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 
 @RestController
@@ -49,5 +52,15 @@ public class ProductController {
             @PathVariable("id")int id,
             @RequestBody UpdateStatusRequest request){
         return productService.updateStatus(id,request);
+    }
+
+    @GetMapping(path = "/getByCategory/{id}")
+    public ResponseEntity<PaginatedResponse<GetAllProductResponse>> getProductsByCategoryId(
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "3") int limit,
+            @PathVariable("id") int id,
+            HttpServletRequest servletRequest
+    ){
+        return productService.getProductsByCategoryId(id, offset, limit, servletRequest);
     }
 }

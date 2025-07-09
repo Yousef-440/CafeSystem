@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface ProductRepository extends JpaRepository<Product,Integer> {
     boolean existsByNameIgnoreCase(@Param("name") String name);
@@ -16,4 +18,6 @@ public interface ProductRepository extends JpaRepository<Product,Integer> {
             String description,
             Pageable pageable
     );
+
+    Page<Product> findAllByCategory_Id(int categoryId, Pageable pageable);
 }

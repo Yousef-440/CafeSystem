@@ -4,7 +4,7 @@ import com.CafeSystem.cafe.dto.ApiResponse;
 import com.CafeSystem.cafe.dto.PaginatedResponse;
 import com.CafeSystem.cafe.dto.productDto.*;
 import com.CafeSystem.cafe.exception.HandleException;
-import com.CafeSystem.cafe.mapper.UserMapper;
+import com.CafeSystem.cafe.mapper.ProductMapper;
 import com.CafeSystem.cafe.model.Category;
 import com.CafeSystem.cafe.model.Product;
 import com.CafeSystem.cafe.model.User;
@@ -40,7 +40,7 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private CurrentUserUtil currentUserUtil;
     @Autowired
-    private UserMapper userMapper;
+    private ProductMapper productMapper;
     @Autowired
     private EmailService emailService;
     @Autowired
@@ -60,7 +60,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         try {
-            Product product = userMapper.toEntity(productDto);
+            Product product = productMapper.toEntity(productDto);
             product.setCategory(category);
             product.setStatus("false");
 
@@ -106,7 +106,7 @@ public class ProductServiceImpl implements ProductService {
                 ? productRepository.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(search, search, pageable)
                 : productRepository.findAll(pageable);
 
-        productResponse = products.map(userMapper::toDto);
+        productResponse = products.map(productMapper::toDto);
 
         PaginatedResponse<GetAllProductResponse> paginatedResponse = currentUserUtil.buildPaginatedResponse(
                 productResponse,
@@ -134,7 +134,7 @@ public class ProductServiceImpl implements ProductService {
                     return new HandleException("Sorry, Product Not Found");
                 });
 
-        ProductUpdateResponse oldData = userMapper.convert(product);
+        ProductUpdateResponse oldData = productMapper.convert(product);
 
         boolean isUpdated = false;
 
@@ -158,7 +158,7 @@ public class ProductServiceImpl implements ProductService {
         productRepository.save(product);
         log.info("Product with ID {} updated successfully", id);
 
-        ProductUpdateResponse newData = userMapper.convert(product);
+        ProductUpdateResponse newData = productMapper.convert(product);
 
         CompareData compareData = CompareData.builder()
                 .oldData(oldData)
@@ -225,7 +225,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ResponseEntity<ApiResponse<UpdateStatusResponse>> updateStatus(int id, UpdateStatusRequest request) {
+    public ResponseEntity<ApiResponse<UpdateStatusResponse>> updateStatus(int id, UpdateStatusRequest request
+                                                                          ) {
         log.info("updateStatus function is started by: {}",
                 SecurityContextHolder.getContext().getAuthentication().getName());
 
@@ -253,15 +254,7 @@ public class ProductServiceImpl implements ProductService {
         product.setStatus(request.getStatus());
         log.info("Product status updated: ID {}, New Status: {}", product.getId(), product.getStatus());
 
-        UpdateStatusResponse statusResponse = userMapper.convertToProduct(product);
-//        UpdateStatusResponse statusResponse = UpdateStatusResponse.builder()
-//                .id(product.getId())
-//                .nameProduct(product.getName())
-//                .price(product.getPrice())
-//                .status(product.getStatus())
-//                .categoryId(product.getCategory().getId())
-//                .categoryName(product.getCategory().getName())
-//                .build();
+        UpdateStatusResponse statusResponse = productMapper.convertToProduct(product);
 
         ApiResponse<UpdateStatusResponse> response = ApiResponse.<UpdateStatusResponse>builder()
                 .status("success")
@@ -295,6 +288,37 @@ public class ProductServiceImpl implements ProductService {
         log.info("updateStatus function completed successfully for product ID {}", product.getId());
 
         return ResponseEntity.ok(response);
+    }
+
+    @Override
+    public ResponseEntity<PaginatedResponse<GetAllProductResponse>> getProductsByCategoryId(int id, int offset, int limit,
+                                                                                            HttpServletRequest servletRequest) {
+        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("getAllProductByCategoryId started by user: {}", currentUser);
+
+        Pageable pageable = PageRequest.of(offset, limit);
+
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Category with ID {} not found by user: {}", id, currentUser);
+                    return new HandleException("Category not found");
+                });
+        log.info("Category with ID {} found: {}", id, category.getName());
+
+        Page<Product> products = productRepository.findAllByCategory_Id(category.getId(), pageable);
+
+        Page<GetAllProductResponse> response = products.map(productMapper::toDto);
+        log.info("Mapped products to GetAllProductResponse successfully");
+
+        PaginatedResponse<GetAllProductResponse> paginatedResponse = currentUserUtil.buildPaginatedResponse(
+                response,
+                offset,
+                limit,
+                servletRequest.getRequestURL().toString(),
+                "offset",
+                "limit"
+        );
+        return ResponseEntity.ok(paginatedResponse);
     }
 
 }
