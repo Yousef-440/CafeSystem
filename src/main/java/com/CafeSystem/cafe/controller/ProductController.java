@@ -40,4 +40,9 @@ public class ProductController {
 
         return productService.updateProduct(id,productRequest);
     }
+
+    @DeleteMapping(path = "/delete/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteProduct(@PathVariable("id")int id){
+        return productService.deleteProduct(id);
+    }
 }

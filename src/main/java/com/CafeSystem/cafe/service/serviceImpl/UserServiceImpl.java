@@ -207,7 +207,7 @@ public class UserServiceImpl implements UserService {
 
         log.info("Dispatching email notification: [{}] to admin: {}, CC {} admins", subject, currentEmail, ccAdmins.size());
 
-        emailService.sendAccountCreationEmail(
+        emailService.sendEmailToAdmins(
                 subject,
                 body,
                 ccAdmins

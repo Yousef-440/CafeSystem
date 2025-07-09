@@ -17,4 +17,6 @@ public interface ProductService {
                                                                            HttpServletRequest request);
 
     ResponseEntity<ApiResponse<CompareData>> updateProduct(int id, UpdateProductRequest productRequest);
+
+    ResponseEntity<ApiResponse<String>> deleteProduct(int id);
 }

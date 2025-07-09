@@ -36,7 +36,7 @@ public class EmailService {
     @Value("${GMAIL_APP_EMAIL}")
     private String fromEmail;
 
-    public void sendAccountCreationEmail(String subject, String text, List<User> receivers) {
+    public void sendEmailToAdmins(String subject, String text, List<User> receivers) {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setFrom(fromEmail);
         mailMessage.setTo(getToArray(receivers));

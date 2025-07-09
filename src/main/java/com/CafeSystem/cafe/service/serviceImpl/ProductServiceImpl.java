@@ -7,9 +7,12 @@ import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.mapper.UserMapper;
 import com.CafeSystem.cafe.model.Category;
 import com.CafeSystem.cafe.model.Product;
+import com.CafeSystem.cafe.model.User;
 import com.CafeSystem.cafe.repository.CategoryRepository;
 import com.CafeSystem.cafe.repository.ProductRepository;
+import com.CafeSystem.cafe.repository.UserRepository;
 import com.CafeSystem.cafe.service.ProductService;
+import com.CafeSystem.cafe.service.email.EmailService;
 import com.CafeSystem.cafe.utils.CurrentUserUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +22,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 
 @Service
@@ -35,6 +41,10 @@ public class ProductServiceImpl implements ProductService {
     private CurrentUserUtil currentUserUtil;
     @Autowired
     private UserMapper userMapper;
+    @Autowired
+    private EmailService emailService;
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     public ResponseEntity<ApiResponse<ProductAddResponse>> addProduct(ProductDto productDto) {
@@ -112,6 +122,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ResponseEntity<ApiResponse<CompareData>> updateProduct(int id, UpdateProductRequest productRequest) {
         log.info("Update request received for product ID: {}", id);
+
+        if(!currentUserUtil.isAdmin()){
+            throw new HandleException("Only admins are allowed");
+        }
+
         Product product = productRepository.findById(id)
                 .orElseThrow(()->
                 {
@@ -156,6 +171,56 @@ public class ProductServiceImpl implements ProductService {
                 .data(compareData)
                 .build();
 
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<String>> deleteProduct(int id) {
+        log.info("DeleteProduct function started by user: {}",
+                SecurityContextHolder.getContext().getAuthentication().getName());
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(()->new HandleException("Not Found"));
+
+        if (!currentUserUtil.isAdmin()) {
+            log.warn("Unauthorized delete product");
+            throw new HandleException("Only admins are allowed");
+        }
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.info("product By id {} not found", id);
+                    return new HandleException("Sorry, id Not Found");
+                });
+
+        productRepository.deleteById(id);
+        log.info("Product with ID {} and name '{}' deleted successfully.", id, product.getName());
+
+        String str = "The product \"" + product.getName() + "\" has been successfully deleted.";
+
+        ApiResponse<String> response = ApiResponse.<String>builder()
+                .status("success")
+                .message("Product deleted successfully!")
+                .data(str)
+                .build();
+        String subject = "Delete Product";
+        String message = "Dear Admins,\n\n" +
+                "Please be informed that the product \"" + product.getName() + "\" (ID: " + product.getId() + ") " +
+                "was deleted by admin \"" + user.getName() + "\".\n\n" +
+                "If this action was not intended or you have any concerns, please review the system logs or contact the system administrator.\n\n" +
+                "Admin Details:\n" +
+                "Name: " + user.getName() + "\n" +
+                "Email: " + user.getEmail() + "\n\n" +
+                "Regards,\n" +
+                "Cafe System";
+
+        List<User> getAllAdmin = userRepository.getAllAdmin();
+        List<User> admins = getAllAdmin.stream()
+                .filter(admin -> !admin.getEmail().equals(authentication.getName()))
+                .toList();
+
+        emailService.sendEmailToAdmins(subject,message,admins);
         return ResponseEntity.ok(response);
     }
 }
