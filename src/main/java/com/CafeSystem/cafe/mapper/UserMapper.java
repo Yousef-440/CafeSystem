@@ -3,6 +3,7 @@ import com.CafeSystem.cafe.dto.UserDto;
 import com.CafeSystem.cafe.dto.productDto.GetAllProductResponse;
 import com.CafeSystem.cafe.dto.productDto.ProductDto;
 import com.CafeSystem.cafe.dto.productDto.ProductUpdateResponse;
+import com.CafeSystem.cafe.dto.productDto.UpdateStatusResponse;
 import com.CafeSystem.cafe.model.Product;
 import com.CafeSystem.cafe.model.User;
 import org.mapstruct.Mapper;
@@ -21,4 +22,9 @@ public interface UserMapper {
     GetAllProductResponse toDto(Product product);
 
     ProductUpdateResponse convert(Product product);
+
+    @Mapping(source = "name", target = "nameProduct")
+    @Mapping(source = "category.id", target = "categoryId")
+    @Mapping(source = "category.name", target = "categoryName")
+    UpdateStatusResponse convertToProduct(Product product);
 }

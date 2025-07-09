@@ -223,4 +223,78 @@ public class ProductServiceImpl implements ProductService {
         emailService.sendEmailToAdmins(subject,message,admins);
         return ResponseEntity.ok(response);
     }
+
+    @Override
+    public ResponseEntity<ApiResponse<UpdateStatusResponse>> updateStatus(int id, UpdateStatusRequest request) {
+        log.info("updateStatus function is started by: {}",
+                SecurityContextHolder.getContext().getAuthentication().getName());
+
+        if (!currentUserUtil.isAdmin()) {
+            log.warn("Unauthorized access to update product status");
+            throw new HandleException("Only admins are allowed");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> {
+                    log.error("User with email {} not found", authentication.getName());
+                    return new HandleException("User not found");
+                });
+
+        log.info("Admin '{}' is attempting to update status of product with ID {}", user.getName(), id);
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("UpdateStatus=> Product with ID {} not found", id);
+                    return new HandleException("Product ID not found");
+                });
+
+        product.setStatus(request.getStatus());
+        log.info("Product status updated: ID {}, New Status: {}", product.getId(), product.getStatus());
+
+        UpdateStatusResponse statusResponse = userMapper.convertToProduct(product);
+//        UpdateStatusResponse statusResponse = UpdateStatusResponse.builder()
+//                .id(product.getId())
+//                .nameProduct(product.getName())
+//                .price(product.getPrice())
+//                .status(product.getStatus())
+//                .categoryId(product.getCategory().getId())
+//                .categoryName(product.getCategory().getName())
+//                .build();
+
+        ApiResponse<UpdateStatusResponse> response = ApiResponse.<UpdateStatusResponse>builder()
+                .status("success")
+                .message("Status updated successfully!")
+                .data(statusResponse)
+                .build();
+
+        String subject = "Update Status";
+        String text = "Dear Admins,\n\n" +
+                "Please be informed that the status of the product \"" + product.getName() + "\" (ID: " + product.getId() + ") " +
+                "has been updated to \"" + product.getStatus() + "\" by admin \"" + user.getName() + "\".\n\n" +
+                "Product Details:\n" +
+                "Name: " + product.getName() + "\n" +
+                "Price: " + product.getPrice() + "\n" +
+                "Category: " + product.getCategory().getName() + "\n" +
+                "New Status: " + product.getStatus() + "\n\n" +
+                "Admin Info:\n" +
+                "Name: " + user.getName() + "\n" +
+                "Email: " + user.getEmail() + "\n\n" +
+                "Regards,\n" +
+                "Cafe System";
+
+        List<User> getAllAdmin = userRepository.getAllAdmin();
+        List<User> admins = getAllAdmin.stream()
+                .filter(admin -> !admin.getEmail().equals(user.getEmail()))
+                .toList();
+
+        emailService.sendEmailToAdmins(subject, text, admins);
+        log.info("Status update email sent to all admins except: {}", user.getEmail());
+
+        log.info("updateStatus function completed successfully for product ID {}", product.getId());
+
+        return ResponseEntity.ok(response);
+    }
+
 }

@@ -6,11 +6,9 @@ import com.CafeSystem.cafe.dto.productDto.*;
 import com.CafeSystem.cafe.service.ProductService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping(path = "/api/v1/product")
@@ -44,5 +42,12 @@ public class ProductController {
     @DeleteMapping(path = "/delete/{id}")
     public ResponseEntity<ApiResponse<String>> deleteProduct(@PathVariable("id")int id){
         return productService.deleteProduct(id);
+    }
+
+    @PutMapping(path = "/updateStatus/{id}")
+    public ResponseEntity<ApiResponse<UpdateStatusResponse>> updateStatus(
+            @PathVariable("id")int id,
+            @RequestBody UpdateStatusRequest request){
+        return productService.updateStatus(id,request);
     }
 }
