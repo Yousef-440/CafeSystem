@@ -15,6 +15,7 @@ public interface ProductMapper {
     @Mapping(source = "category.name", target = "categoryName")
     UpdateStatusResponse convertToProduct(Product product);
 
+    @Mapping(source = "price", target = "price")
     ProductUpdateResponse convert(Product product);
 
     Product toEntity(ProductDto productDto);

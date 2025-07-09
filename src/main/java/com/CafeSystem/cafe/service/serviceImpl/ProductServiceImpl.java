@@ -7,9 +7,11 @@ import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.mapper.ProductMapper;
 import com.CafeSystem.cafe.model.Category;
 import com.CafeSystem.cafe.model.Product;
+import com.CafeSystem.cafe.model.ProductUpdateLog;
 import com.CafeSystem.cafe.model.User;
 import com.CafeSystem.cafe.repository.CategoryRepository;
 import com.CafeSystem.cafe.repository.ProductRepository;
+import com.CafeSystem.cafe.repository.ProductUpdateLogRepository;
 import com.CafeSystem.cafe.repository.UserRepository;
 import com.CafeSystem.cafe.service.ProductService;
 import com.CafeSystem.cafe.service.email.EmailService;
@@ -26,6 +28,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -45,6 +48,8 @@ public class ProductServiceImpl implements ProductService {
     private EmailService emailService;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private ProductUpdateLogRepository repository;
 
     @Override
     public ResponseEntity<ApiResponse<ProductAddResponse>> addProduct(ProductDto productDto) {
@@ -127,6 +132,8 @@ public class ProductServiceImpl implements ProductService {
             throw new HandleException("Only admins are allowed");
         }
 
+        User user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName()).get();
+
         Product product = productRepository.findById(id)
                 .orElseThrow(()->
                 {
@@ -136,27 +143,85 @@ public class ProductServiceImpl implements ProductService {
 
         ProductUpdateResponse oldData = productMapper.convert(product);
 
+        String oldName = product.getName();
+        String oldPrice = String.valueOf(product.getPrice());
+        String oldDescription = product.getDescription();
+
         boolean isUpdated = false;
 
-        if (productRequest.getName() != null) {
+        if (productRequest.getName() != null && !productRequest.getName().equals(product.getName())) {
             log.info("Updating product name from '{}' to '{}'",
                     product.getName(), productRequest.getName());
             product.setName(productRequest.getName());
             isUpdated = true;
         }
 
-        if (productRequest.getDescription() != null) {
+        if (productRequest.getDescription() != null && !productRequest.getDescription().equals(product.getDescription())) {
             log.info("Updating product description from '{}' to '{}'",
                     product.getDescription(), productRequest.getDescription());
             product.setDescription(productRequest.getDescription());
             isUpdated = true;
         }
 
+        if (productRequest.getPrice() != null && !productRequest.getPrice().equals(product.getPrice())) {
+            log.info("Updating product price from '{}' to '{}'",
+                    product.getPrice(), productRequest.getPrice());
+            product.setPrice(productRequest.getPrice());
+            isUpdated = true;
+        }
+
         if (!isUpdated) {
             throw new HandleException("No data provided to update");
         }
+
         productRepository.save(product);
         log.info("Product with ID {} updated successfully", id);
+
+        String newName = product.getName();
+        String newPrice = String.valueOf(product.getPrice());
+
+        LocalDateTime now = LocalDateTime.now();
+
+        if(!oldName.equals(newName)){
+            ProductUpdateLog log = ProductUpdateLog.builder()
+                    .product(product)
+                    .user(user)
+                    .fieldChanged("name_product")
+                    .oldValue(oldName)
+                    .newValue(newName)
+                    .updateTime(now)
+                    .build();
+            repository.save(log);
+
+        }
+
+        if(!oldPrice.equals(newPrice)){
+            ProductUpdateLog log = ProductUpdateLog.builder()
+                    .product(product)
+                    .user(user)
+                    .fieldChanged("price_product")
+                    .oldValue(oldPrice)
+                    .newValue(newPrice)
+                    .updateTime(now)
+                    .build();
+            repository.save(log);
+        }
+
+        String newDescription = product.getDescription();
+
+        if (!oldDescription.equals(newDescription)) {
+            ProductUpdateLog log = ProductUpdateLog.builder()
+                    .product(product)
+                    .user(user)
+                    .fieldChanged("description_product")
+                    .oldValue(oldDescription)
+                    .newValue(newDescription)
+                    .updateTime(now)
+                    .build();
+            repository.save(log);
+        }
+
+
 
         ProductUpdateResponse newData = productMapper.convert(product);
 
@@ -243,6 +308,7 @@ public class ProductServiceImpl implements ProductService {
                     return new HandleException("User not found");
                 });
 
+
         log.info("Admin '{}' is attempting to update status of product with ID {}", user.getName(), id);
 
         Product product = productRepository.findById(id)
@@ -320,5 +386,4 @@ public class ProductServiceImpl implements ProductService {
         );
         return ResponseEntity.ok(paginatedResponse);
     }
-
 }

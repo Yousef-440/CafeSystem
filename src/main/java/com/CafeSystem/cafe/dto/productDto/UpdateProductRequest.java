@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class UpdateProductRequest {
     private String name;
     private String description;
+    private Double price;
 }
