@@ -28,7 +28,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -135,8 +134,7 @@ public class ProductServiceImpl implements ProductService {
         User user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName()).get();
 
         Product product = productRepository.findById(id)
-                .orElseThrow(()->
-                {
+                .orElseThrow(() -> {
                     log.warn("Product with ID {} not found", id);
                     return new HandleException("Sorry, Product Not Found");
                 });
@@ -179,49 +177,23 @@ public class ProductServiceImpl implements ProductService {
 
         String newName = product.getName();
         String newPrice = String.valueOf(product.getPrice());
-
-        LocalDateTime now = LocalDateTime.now();
+        String newDescription = product.getDescription();
 
         if(!oldName.equals(newName)){
-            ProductUpdateLog log = ProductUpdateLog.builder()
-                    .product(product)
-                    .user(user)
-                    .fieldChanged("name_product")
-                    .oldValue(oldName)
-                    .newValue(newName)
-                    .updateTime(now)
-                    .build();
+            ProductUpdateLog log = convertingToProductUpdateLog(product,user,"name-product",oldName,newName);
             repository.save(log);
-
         }
 
         if(!oldPrice.equals(newPrice)){
-            ProductUpdateLog log = ProductUpdateLog.builder()
-                    .product(product)
-                    .user(user)
-                    .fieldChanged("price_product")
-                    .oldValue(oldPrice)
-                    .newValue(newPrice)
-                    .updateTime(now)
-                    .build();
+            ProductUpdateLog log = convertingToProductUpdateLog(product,user,"price-product",oldPrice,newPrice);
             repository.save(log);
         }
-
-        String newDescription = product.getDescription();
 
         if (!oldDescription.equals(newDescription)) {
-            ProductUpdateLog log = ProductUpdateLog.builder()
-                    .product(product)
-                    .user(user)
-                    .fieldChanged("description_product")
-                    .oldValue(oldDescription)
-                    .newValue(newDescription)
-                    .updateTime(now)
-                    .build();
+            ProductUpdateLog log = convertingToProductUpdateLog(product,user,
+                    "description_product",oldDescription,newDescription);
             repository.save(log);
         }
-
-
 
         ProductUpdateResponse newData = productMapper.convert(product);
 
@@ -316,6 +288,7 @@ public class ProductServiceImpl implements ProductService {
                     log.warn("UpdateStatus=> Product with ID {} not found", id);
                     return new HandleException("Product ID not found");
                 });
+        String oldStatusValue = product.getStatus();
 
         product.setStatus(request.getStatus());
         log.info("Product status updated: ID {}, New Status: {}", product.getId(), product.getStatus());
@@ -351,8 +324,18 @@ public class ProductServiceImpl implements ProductService {
         emailService.sendEmailToAdmins(subject, text, admins);
         log.info("Status update email sent to all admins except: {}", user.getEmail());
 
-        log.info("updateStatus function completed successfully for product ID {}", product.getId());
+        ProductUpdateLog updateLog = convertingToProductUpdateLog(
+                product,
+                user,
+                "status-update",
+                oldStatusValue,
+                product.getStatus()
+        );
+        repository.save(updateLog);
+        log.info("Saved product status update log for product ID: {}, old status: {}, new status: {}, updated by: {}",
+                product.getId(), oldStatusValue, product.getStatus(), user.getEmail());
 
+        log.info("updateStatus function completed successfully for product ID {}", product.getId());
         return ResponseEntity.ok(response);
     }
 
@@ -385,5 +368,18 @@ public class ProductServiceImpl implements ProductService {
                 "limit"
         );
         return ResponseEntity.ok(paginatedResponse);
+    }
+
+
+    public ProductUpdateLog convertingToProductUpdateLog(
+            Product product,User user,String field,String oldValue,String newValue){
+        return ProductUpdateLog.builder()
+                .product(product)
+                .user(user)
+                .fieldChanged(field)
+                .oldValue(oldValue)
+                .newValue(newValue)
+
+                .build();
     }
 }

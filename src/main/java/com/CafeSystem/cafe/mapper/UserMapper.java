@@ -7,9 +7,4 @@ import org.mapstruct.Mapper;
 public interface UserMapper {
     User toEntity(UserDto userDto);
     UserDto toDto(User user);
-
-
-
-
-
 }

@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -37,5 +38,7 @@ public class ProductUpdateLog {
 
     private String newValue;
 
+    @UpdateTimestamp
     private LocalDateTime updateTime;
+
 }
