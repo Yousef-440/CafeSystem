@@ -18,10 +18,13 @@ public interface ProductMapper {
     @Mapping(source = "price", target = "price")
     ProductUpdateResponse convert(Product product);
 
+    @Mapping(source = "quantity", target = "quantity")
     Product toEntity(ProductDto productDto);
+
     ProductDto toDot(Product product);
 
     @Mapping(source = "category.id", target = "categoryId")
     @Mapping(source = "category.name", target = "categoryName")
+    @Mapping(source = "quantity", target = "quantity")
     GetAllProductResponse toDto(Product product);
 }

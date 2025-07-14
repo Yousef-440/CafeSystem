@@ -15,6 +15,7 @@ public class GetAllProductResponse {
     private String description;
     private double price;
     private String status;
+    private Integer quantity;
     private int categoryId;
     private String categoryName;
 }

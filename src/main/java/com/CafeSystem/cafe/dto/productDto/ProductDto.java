@@ -19,6 +19,7 @@ public class ProductDto {
     private int categoryId;
     @NotNull(message = "The price must be not null")
     private String description;
+    private Integer quantity;
 
     @NotNull(message = "The price must be not null")
     @DecimalMin(value = "1.5", message = "minimum price => '1.5'")

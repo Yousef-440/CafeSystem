@@ -27,7 +27,7 @@ public class Product {
     @Size(min = 3, max = 35, message = "The name must be between 3 and 35 characters long")
     private String name;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false, cascade = CascadeType.ALL)
     @JoinColumn(name = "category_fk", nullable = false)
     private Category category;
 
@@ -38,6 +38,8 @@ public class Product {
     private Double price;
 
     private String status;
+
+    private Integer quantity;
 
     @CreationTimestamp
     @Column(updatable = false)

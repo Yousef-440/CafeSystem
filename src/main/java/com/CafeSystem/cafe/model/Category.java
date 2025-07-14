@@ -16,6 +16,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -33,6 +34,7 @@ public class Category implements Serializable {
 
     @NotBlank(message = "Please fill in the name field")
     @Size(min = 2, max = 50, message = "Name must be between 2 and 50 characters")
+    @Column(unique = true)
     private String name;
 
     @CreationTimestamp
@@ -44,4 +46,6 @@ public class Category implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate modifiedAt;
 
+    @OneToMany(mappedBy = "category",cascade = CascadeType.ALL)
+    private List<Product> products;
 }
