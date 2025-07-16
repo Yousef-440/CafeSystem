@@ -1,8 +1,6 @@
 package com.CafeSystem.cafe.dto.bill;
 
-import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,8 +26,4 @@ public class BillRequestDTO {
     private String paymentMethod;
 
     private List<ProductDetailsDTO> productDetails;
-
-    @Positive
-    @Digits(integer = 4, fraction = 2)
-    private Double totalAmount;
 }

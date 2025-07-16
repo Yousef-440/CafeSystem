@@ -2,20 +2,22 @@ package com.CafeSystem.cafe.service.serviceImpl;
 
 import com.CafeSystem.cafe.dto.bill.BillRequestDTO;
 import com.CafeSystem.cafe.dto.bill.ProductDetailsDTO;
-import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.model.Bill;
 import com.CafeSystem.cafe.repository.BillRepository;
 import com.CafeSystem.cafe.repository.CategoryRepository;
 import com.CafeSystem.cafe.service.BillService;
+import com.CafeSystem.cafe.utils.BillPdfGenerator;
 import com.CafeSystem.cafe.utils.CafeUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.io.FileOutputStream;
 import java.util.Map;
 import java.util.UUID;
 
@@ -31,6 +33,11 @@ public class BillServiceImpl implements BillService {
 
     @Autowired
     private CategoryRepository categoryRepository;
+    @Value("${store.location}")
+    private String location;
+
+    @Autowired
+    private BillPdfGenerator billPdfGenerator;
 
     @Override
     public ResponseEntity<String> generateReport(BillRequestDTO billRequestDTO, boolean isGenerate) {
@@ -55,6 +62,13 @@ public class BillServiceImpl implements BillService {
             billRepository.save(bill);
             log.info("Bill saved successfully with UUID: {}", bill.getUuid());
 
+            byte[] pdfBytes = billPdfGenerator.generatePdf(bill);
+
+            try (FileOutputStream fos = new FileOutputStream(location + bill.getId() + ".pdf")) {
+                fos.write(pdfBytes);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             return CafeUtil.getResponseEntity("Report generated successfully", HttpStatus.OK);
 
         } catch (Exception e) {
