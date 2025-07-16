@@ -97,7 +97,6 @@ public class BillServiceImpl implements BillService {
                 .email(billRequestDTO.getEmail())
                 .contactNumber(billRequestDTO.getContactNumber())
                 .paymentMethod(billRequestDTO.getPaymentMethod())
-                .total(billRequestDTO.getTotalAmount())
                 .productDetails(productDetailsJson)
                 .createdBy(currentUser)
                 .build();
