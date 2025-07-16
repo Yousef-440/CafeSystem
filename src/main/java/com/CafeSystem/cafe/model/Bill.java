@@ -40,6 +40,7 @@ public class Bill {
 
     private String paymentMethod;
 
+    private Double total;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "product_details", columnDefinition = "jsonb")
