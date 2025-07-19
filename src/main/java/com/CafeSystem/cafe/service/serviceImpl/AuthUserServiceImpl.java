@@ -3,12 +3,15 @@ package com.CafeSystem.cafe.service.serviceImpl;
 import com.CafeSystem.cafe.dto.*;
 import com.CafeSystem.cafe.dto.ApiResponse;
 import com.CafeSystem.cafe.enumType.RoleType;
+import com.CafeSystem.cafe.enumType.StatusType;
 import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.mapper.UserMapper;
 import com.CafeSystem.cafe.model.PasswordResetToken;
 import com.CafeSystem.cafe.model.User;
+import com.CafeSystem.cafe.model.UserVerificationToken;
 import com.CafeSystem.cafe.repository.PasswordResetTokenRepository;
 import com.CafeSystem.cafe.repository.UserRepository;
+import com.CafeSystem.cafe.repository.UserVerificationTokenRepository;
 import com.CafeSystem.cafe.security.CustomUserDetails;
 import com.CafeSystem.cafe.security.JwtGenerator;
 import com.CafeSystem.cafe.service.AuthUserService;
@@ -29,8 +32,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -46,6 +51,7 @@ public class AuthUserServiceImpl implements AuthUserService {
     private final EmailService emailService;
     private final PasswordResetService passwordResetService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final UserVerificationTokenRepository userVerificationTokenRepository;
 
     @Override
     @Transactional
@@ -56,7 +62,7 @@ public class AuthUserServiceImpl implements AuthUserService {
 
         if (existingUser.isPresent()) {
             log.warn("Signup failed: Email already exists - {}", signUpUserDto.getEmail());
-            throw new HandleException("Sorry, Email already exists" , HttpStatus.BAD_REQUEST);
+            throw new HandleException("Sorry, Email already exists");
         }
 
         User user = userMapper.toEntity(signUpUserDto);
@@ -66,8 +72,17 @@ public class AuthUserServiceImpl implements AuthUserService {
         User savedUser = userRepository.save(user);
         log.info("User created successfully with ID: {} and email: {}", savedUser.getId(), savedUser.getEmail());
 
+        String token = UUID.randomUUID().toString();
+        UserVerificationToken userVerificationToken = UserVerificationToken.builder()
+                .token(token)
+                .user(user)
+                .expiryDate(LocalDateTime.now().plusHours(24))
+                .build();
+        userVerificationTokenRepository.save(userVerificationToken);
+
+        String verifyUrl = "http://localhost:8081/api/v1/user/verify?token=" + token;
         String subject = "Hello, " + signUpUserDto.getName();
-        emailService.sendWhenSignup(signUpUserDto.getEmail(),subject, signUpUserDto.getName());
+        emailService.sendWhenSignup(signUpUserDto.getEmail(),subject, signUpUserDto.getName(), verifyUrl);
 
 
         SignUpUserResponse signUpUserResponse = SignUpUserResponse.builder()
@@ -89,6 +104,30 @@ public class AuthUserServiceImpl implements AuthUserService {
     }
 
     @Override
+    public ResponseEntity<String> verifyEmail(String token) {
+        log.info("Verification is started");
+
+       UserVerificationToken vToken = userVerificationTokenRepository.findByToken(token)
+               .orElseThrow(()->new HandleException("Invalid Token"));
+
+        if (vToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body("Token Expired");
+        }
+
+        User user = vToken.getUser();
+        user.setStatus(StatusType.ACTIVE);
+        userRepository.save(user);
+        return ResponseEntity.ok("Email Verified Successfully");
+    }
+
+
+
+
+
+
+
+
+    @Override
     public ResponseEntity<ApiResponse<LoginResponseData>> login(LoginRequest loginRequest) {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
@@ -106,7 +145,7 @@ public class AuthUserServiceImpl implements AuthUserService {
         } catch (BadCredentialsException e) {
 
             log.warn("Wrong password for email: {}", email);
-            throw new HandleException("Incorrect Password", HttpStatus.BAD_REQUEST);
+            throw new HandleException("Incorrect Password");
 
         } catch (Exception e) {
 
@@ -179,7 +218,7 @@ public class AuthUserServiceImpl implements AuthUserService {
     public ResponseEntity<String> forgotPassword(String email) throws MessagingException, IOException {
 
         User user = userRepository.findByEmail(email.trim())
-                .orElseThrow(() -> new HandleException("Sorry, Email Not Found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new HandleException("Sorry, Email Not Found"));
         
         if (user.getEmail() != null) {
             emailService.sendResetLink(
@@ -197,7 +236,7 @@ public class AuthUserServiceImpl implements AuthUserService {
     public ResponseEntity<String> resetPassword(String passwordRestToken, String newPass) {
         PasswordResetToken token =
                 passwordResetTokenRepository.findByToken(passwordRestToken).orElseThrow(
-                        ()->new HandleException("Invalid Token", HttpStatus.BAD_REQUEST)
+                        ()->new HandleException("Invalid Token")
                 );
 
         if (token.getExpiryDate().before(new Date())) {

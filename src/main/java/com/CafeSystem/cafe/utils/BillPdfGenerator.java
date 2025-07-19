@@ -163,7 +163,7 @@ public class BillPdfGenerator {
 
             return byteArrayOutputStream.toByteArray();
         }catch (Exception ex){
-            throw new HandleException("Something Went Wrong" + ex.getMessage(), HttpStatus.BAD_REQUEST);
+            throw new HandleException("Something Went Wrong" + ex.getMessage());
         }
     }
 }

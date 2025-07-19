@@ -16,13 +16,13 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(HandleException.class)
-    public ResponseEntity<?> handleNotFoundException(HandleException ex, HttpStatus status){
+    public ResponseEntity<?> handleNotFoundException(HandleException ex){
         Map<String, Object> error = new HashMap<>();
         error.put("timestamp", LocalDateTime.now());
-        error.put("status", status);
+        error.put("status", HttpStatus.BAD_REQUEST.value());
         error.put("message", ex.getMessage());
 
-        return new ResponseEntity<>(error, status);
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

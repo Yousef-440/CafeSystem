@@ -1,6 +1,7 @@
 package com.CafeSystem.cafe.security;
 
 import com.CafeSystem.cafe.enumType.RoleType;
+import com.CafeSystem.cafe.enumType.StatusType;
 import com.CafeSystem.cafe.model.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -41,5 +42,10 @@ public class CustomUserDetails implements UserDetails {
     @Override
     public String getUsername() {
         return user.getEmail();
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return user.getStatus() == StatusType.ACTIVE;
     }
 }

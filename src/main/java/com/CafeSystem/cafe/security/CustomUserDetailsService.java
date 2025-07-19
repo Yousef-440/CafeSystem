@@ -1,5 +1,6 @@
 package com.CafeSystem.cafe.security;
 
+import com.CafeSystem.cafe.enumType.StatusType;
 import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.model.User;
 import com.CafeSystem.cafe.repository.UserRepository;
@@ -21,7 +22,11 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         log.info("Inside loadUserByUsername {}", email);
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new HandleException("Sorry, Email Not Found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new HandleException("Sorry, Email Not Found"));
+
+        if(user.getStatus() == StatusType.PENDING){
+            throw new HandleException("Account not verified");
+        }
 
         return new CustomUserDetails(user);
 

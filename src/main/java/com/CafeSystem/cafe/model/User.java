@@ -40,7 +40,7 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "varchar default 'ACTIVE'")
+    @Column(columnDefinition = "varchar default 'PENDING'")
     private StatusType status;
 
     @Enumerated(EnumType.STRING)

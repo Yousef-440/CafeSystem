@@ -69,7 +69,7 @@ public class EmailService {
         mailSender.send(mimeMessage);
     }
 
-    public void sendWhenSignup(String to, String subject, String name) throws MessagingException{
+    public void sendWhenSignup(String to, String subject, String name, String url) throws MessagingException{
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
@@ -79,6 +79,7 @@ public class EmailService {
 
         Context context = new Context();
         context.setVariable("name", name);
+        context.setVariable("VerificationUrl", url);
 
 
         String htmlContent = templateEngine.process("EmailSignup",context);

@@ -59,7 +59,7 @@ public class UserServiceImpl implements UserService {
             return all.map(this::mapToUserProfileDto);
         } else {
             log.warn("Unauthorized access attempt to getAllUsersAndAdmin");
-            throw new HandleException("Unauthorized: Only 'Admin' can access this", HttpStatus.UNAUTHORIZED);
+            throw new HandleException("Unauthorized: Only 'Admin' can access this");
         }
     }
 
@@ -76,7 +76,7 @@ public class UserServiceImpl implements UserService {
 
         } else {
             log.warn("Unauthorized access attempt to getAllAdmin");
-            throw new HandleException("Unauthorized: Only 'Admin' can access this", HttpStatus.UNAUTHORIZED);
+            throw new HandleException("Unauthorized: Only 'Admin' can access this");
         }
     }
 
@@ -91,7 +91,7 @@ public class UserServiceImpl implements UserService {
             return users.map(this::mapToUserProfileDto);
         }else{
             log.info("Unauthorized access attempt to getAllUsers");
-            throw new HandleException("Unauthorized: Only 'Admin' can access this", HttpStatus.UNAUTHORIZED);
+            throw new HandleException("Unauthorized: Only 'Admin' can access this");
         }
     }
 
@@ -102,17 +102,17 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {
                     log.error("User with ID {} not found", id);
-                    return new HandleException("User By {" + id + "} id not found", HttpStatus.NOT_FOUND);
+                    return new HandleException("User By {" + id + "} id not found");
                 });
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentUserEmail = auth.getName();
 
         User currentUser = userRepository.findByEmail(currentUserEmail)
-                        .orElseThrow(()->new HandleException("User not found", HttpStatus.NOT_FOUND));
+                        .orElseThrow(()->new HandleException("User not found"));
 
         if (!currentUser.getId().equals(id)) {
-            throw new HandleException("You are not authorized to update this account", HttpStatus.UNAUTHORIZED);
+            throw new HandleException("You are not authorized to update this account");
         }
 
         log.debug("Loaded existing user data for ID: {}", user.getId());
@@ -130,7 +130,7 @@ public class UserServiceImpl implements UserService {
 
         Optional<User> founded = userRepository.findByEmail(userRequest.getEmail());
         if(founded.isPresent() && !Objects.equals(founded.get().getId(), user.getId())){
-            throw new HandleException("Sorry, Email already exits", HttpStatus.BAD_REQUEST);
+            throw new HandleException("Sorry, Email already exits");
         }
 
         User updatedUser = userRepository.save(user);
@@ -163,7 +163,7 @@ public class UserServiceImpl implements UserService {
             User user = userRepository.findById(request.getId())
                     .orElseThrow(() -> {
                         log.error("Status update failed - User with ID {} not found", request.getId());
-                        return new HandleException("User not found with ID: " + request.getId(), HttpStatus.UNAUTHORIZED);
+                        return new HandleException("User not found with ID: " + request.getId());
                     });
 
             sendEmailToAllAdmin(request.getStatus(), user.getEmail(), userRepository.getAllAdmin(), request.getToken());

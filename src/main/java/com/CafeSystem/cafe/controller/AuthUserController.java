@@ -31,6 +31,11 @@ public class AuthUserController {
         return userService.signup(signUpUserDto);
     }
 
+    @GetMapping("/verify")
+    public ResponseEntity<String> verifyEmail(@RequestParam("token") String token){
+        return userService.verifyEmail(token);
+    }
+
     @Operation(
             summary = "Login",
             description = "To Login your account, the user must enter the email and password."

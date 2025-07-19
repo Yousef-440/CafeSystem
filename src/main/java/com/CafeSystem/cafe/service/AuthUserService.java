@@ -17,4 +17,6 @@ public interface AuthUserService {
     ResponseEntity<String> forgotPassword(String email) throws MessagingException, IOException;
 
     ResponseEntity<String> resetPassword(String passwordRestToken, String newPass);
+
+    ResponseEntity<String> verifyEmail(String token);
 }
