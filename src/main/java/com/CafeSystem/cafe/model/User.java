@@ -1,11 +1,9 @@
 package com.CafeSystem.cafe.model;
 
 import com.CafeSystem.cafe.enumType.RoleType;
+import com.CafeSystem.cafe.enumType.StatusType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,8 +14,7 @@ import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDate;
-
+import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
@@ -32,32 +29,29 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @NotBlank(message = "Name must not be blank")
     @Size(min = 2, max = 50, message = "Name must be between 2 and 50 characters")
     private String name;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email format is invalid")
+    @Column(unique = true)
     private String email;
 
-    @NotBlank(message = "Contact number is required")
-    @Pattern(regexp = "^[0-9]{10}$", message = "Contact number must contain 10 digits")
     private String contactNumber;
 
-    @NotBlank(message = "Password is required")
     private String password;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "varchar default 'ACTIVE'")
+    private StatusType status;
 
     @Enumerated(EnumType.STRING)
     private RoleType role;
 
     @CreationTimestamp
     @Column(updatable = false)
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate createdAt;
+    @JsonFormat(pattern = "dd-MM-yyyy, HH:mm")
+    private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate modifiedAt;
+    @JsonFormat(pattern = "dd-MM-yyyy, HH:mm")
+    private LocalDateTime modifiedAt;
 }

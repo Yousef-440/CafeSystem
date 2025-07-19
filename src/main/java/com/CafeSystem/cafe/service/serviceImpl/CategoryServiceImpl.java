@@ -86,18 +86,18 @@ public class CategoryServiceImpl implements CategoryService {
 
         if (!currentUserUtil.isAdmin()) {
             log.warn("Unauthorized access to update category.");
-            throw new HandleException("Unauthorized access");
+            throw new HandleException("Unauthorized access", HttpStatus.UNAUTHORIZED);
         }
 
         Category category = categoryRepository.findById(id).orElseThrow(
-                () -> new HandleException("Category with ID " + id + " not found.")
+                () -> new HandleException("Category with ID " + id + " not found.", HttpStatus.NOT_FOUND)
         );
 
         log.info("Category found: {}", category.getName());
 
         if (category.getName().equalsIgnoreCase(name)) {
             log.warn("No changes detected. Category name is already '{}'", name);
-            throw new HandleException("Category already has this name.");
+            throw new HandleException("Category already has this name.",HttpStatus.BAD_REQUEST);
         }
 
         UpdateDataResponse oldData = UpdateDataResponse.builder()
@@ -133,10 +133,10 @@ public class CategoryServiceImpl implements CategoryService {
         log.info("deleteCategory Function Started");
         if(!currentUserUtil.isAdmin()){
             log.warn("Unauthorized access");
-            throw new HandleException("Unauthorized access");
+            throw new HandleException("Unauthorized access",HttpStatus.UNAUTHORIZED);
         }
         Category category = categoryRepository.findById(id).orElseThrow(
-                ()->new HandleException("Category Not Found")
+                ()->new HandleException("Category Not Found",HttpStatus.NOT_FOUND)
         );
 
         categoryRepository.deleteById(id);

@@ -16,8 +16,8 @@ import com.CafeSystem.cafe.service.email.EmailService;
 import com.CafeSystem.cafe.utils.CafeUtil;
 import com.CafeSystem.cafe.utils.CurrentUserUtil;
 import jakarta.mail.MessagingException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,64 +34,54 @@ import java.util.Optional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AuthUserServiceImpl implements AuthUserService {
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private UserMapper userMapper;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-    @Autowired
-    private AuthenticationManager authenticationManager;
-    @Autowired
-    private JwtGenerator jwtGenerator;
-    @Autowired
-    private CurrentUserUtil currentUserUtil;
-    @Autowired
-    private EmailService emailService;
-    @Autowired
-    private PasswordResetService passwordResetService;
-    @Autowired
-    private PasswordResetTokenRepository passwordResetTokenRepository;
+    private final UserRepository userRepository;
+    private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtGenerator jwtGenerator;
+    private final CurrentUserUtil currentUserUtil;
+    private final EmailService emailService;
+    private final PasswordResetService passwordResetService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Override
     @Transactional
-    public ResponseEntity<ApiResponse<?>> signup(UserDto userDto) throws MessagingException {
-        log.info("Starting signup process for email: {}", userDto.getEmail());
+    public ResponseEntity<ApiResponse<SignUpUserResponse>> signup(SignUpUserDto signUpUserDto) throws MessagingException {
+        log.info("Starting signup process for email: {}", signUpUserDto.getEmail());
 
-        Optional<User> existingUser = userRepository.findByEmail(userDto.getEmail());
+        Optional<User> existingUser = userRepository.findByEmail(signUpUserDto.getEmail());
+
         if (existingUser.isPresent()) {
-            log.warn("Signup failed: Email already exists - {}", userDto.getEmail());
-            ApiResponse<?> errorResponse = ApiResponse.<Void>builder()
-                    .status("error")
-                    .message("Sorry, Email already exists")
-                    .build();
-            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+            log.warn("Signup failed: Email already exists - {}", signUpUserDto.getEmail());
+            throw new HandleException("Sorry, Email already exists" , HttpStatus.BAD_REQUEST);
         }
-        String subject = "Hello, " + userDto.getName();
-        emailService.sendWhenSignup(userDto.getEmail(),subject, userDto.getName());
 
-        User user = convertDtoToEntity(userDto);
-        user.setPassword(passwordEncoder.encode(userDto.getPassword()));
+        User user = userMapper.toEntity(signUpUserDto);
+        user.setPassword(passwordEncoder.encode(signUpUserDto.getPassword()));
         user.setRole(RoleType.USER);
-        user.setStatus("false");
 
         User savedUser = userRepository.save(user);
         log.info("User created successfully with ID: {} and email: {}", savedUser.getId(), savedUser.getEmail());
 
-        UserResponse userResponse = UserResponse.builder()
-                .message("Hello, Welcome to the Cafe, " + savedUser.getName() + " !")
+        String subject = "Hello, " + signUpUserDto.getName();
+        emailService.sendWhenSignup(signUpUserDto.getEmail(),subject, signUpUserDto.getName());
+
+
+        SignUpUserResponse signUpUserResponse = SignUpUserResponse.builder()
+                .message("Hello,Welcome to the Cafe, " + savedUser.getName() + "!")
                 .name(savedUser.getName())
                 .email(savedUser.getEmail())
                 .contactNumber(savedUser.getContactNumber())
-                .createdAt(savedUser.getCreatedAt())
+                .createdAt(savedUser.getCreatedAt().toLocalDate())
                 .build();
 
-        ApiResponse<UserResponse> response = ApiResponse.<UserResponse>builder()
+        ApiResponse<SignUpUserResponse> response = ApiResponse.<SignUpUserResponse>builder()
                 .status("success")
                 .message("Account created successfully!")
-                .data(userResponse)
+                .data(signUpUserResponse)
                 .build();
 
         log.info("Signup successfully for email: {}", savedUser.getEmail());
@@ -116,7 +106,7 @@ public class AuthUserServiceImpl implements AuthUserService {
         } catch (BadCredentialsException e) {
 
             log.warn("Wrong password for email: {}", email);
-            throw new HandleException("Incorrect Password");
+            throw new HandleException("Incorrect Password", HttpStatus.BAD_REQUEST);
 
         } catch (Exception e) {
 
@@ -189,7 +179,7 @@ public class AuthUserServiceImpl implements AuthUserService {
     public ResponseEntity<String> forgotPassword(String email) throws MessagingException, IOException {
 
         User user = userRepository.findByEmail(email.trim())
-                .orElseThrow(() -> new HandleException("Sorry, Email Not Found"));
+                .orElseThrow(() -> new HandleException("Sorry, Email Not Found", HttpStatus.NOT_FOUND));
         
         if (user.getEmail() != null) {
             emailService.sendResetLink(
@@ -207,7 +197,7 @@ public class AuthUserServiceImpl implements AuthUserService {
     public ResponseEntity<String> resetPassword(String passwordRestToken, String newPass) {
         PasswordResetToken token =
                 passwordResetTokenRepository.findByToken(passwordRestToken).orElseThrow(
-                        ()->new HandleException("Invalid Token")
+                        ()->new HandleException("Invalid Token", HttpStatus.BAD_REQUEST)
                 );
 
         if (token.getExpiryDate().before(new Date())) {
@@ -221,10 +211,5 @@ public class AuthUserServiceImpl implements AuthUserService {
         passwordResetTokenRepository.delete(token);
 
         return ResponseEntity.ok("Password successfully reset");
-    }
-
-    private User convertDtoToEntity(UserDto userDto) {
-        log.debug("Converting UserDto to User entity : {}", userDto.getName());
-        return userMapper.toEntity(userDto);
     }
 }

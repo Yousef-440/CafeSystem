@@ -6,6 +6,7 @@ import com.CafeSystem.cafe.model.Bill;
 import com.CafeSystem.cafe.repository.BillRepository;
 import com.CafeSystem.cafe.repository.CategoryRepository;
 import com.CafeSystem.cafe.service.BillService;
+import com.CafeSystem.cafe.service.email.EmailService;
 import com.CafeSystem.cafe.utils.BillPdfGenerator;
 import com.CafeSystem.cafe.utils.CafeUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,6 +40,9 @@ public class BillServiceImpl implements BillService {
     @Autowired
     private BillPdfGenerator billPdfGenerator;
 
+    @Autowired
+    private EmailService emailService;
+
     @Override
     public ResponseEntity<String> generateReport(BillRequestDTO billRequestDTO, boolean isGenerate) {
         log.info("generateReport started with isGenerate: {}", isGenerate);
@@ -63,12 +67,19 @@ public class BillServiceImpl implements BillService {
             log.info("Bill saved successfully with UUID: {}", bill.getUuid());
 
             byte[] pdfBytes = billPdfGenerator.generatePdf(bill);
+            log.info("PDF Size: {}" , pdfBytes.length);
 
-            try (FileOutputStream fos = new FileOutputStream(location + bill.getId() + ".pdf")) {
+            try (FileOutputStream fos = new FileOutputStream(location + bill.getUuid() + ".pdf")) {
                 fos.write(pdfBytes);
             } catch (Exception e) {
                 e.printStackTrace();
             }
+
+            String subject = "Your Bill from Cafe System";
+            emailService.sendBillToUser(bill.getEmail(), subject, pdfBytes);
+            log.info("email sending successfully for email: {}", bill.getEmail());
+
+
             return CafeUtil.getResponseEntity("Report generated successfully", HttpStatus.OK);
 
         } catch (Exception e) {

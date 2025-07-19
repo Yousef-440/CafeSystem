@@ -6,7 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+
+import java.time.LocalDateTime;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -17,6 +18,6 @@ public class UpdateResponse {
     private String email;
     private String contactNumber;
 
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate modifiedAt;
+    @JsonFormat(pattern = "yyyy-MM-dd, HH:mm")
+    private LocalDateTime modifiedAt;
 }

@@ -12,6 +12,7 @@ import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.itextpdf.text.pdf.draw.LineSeparator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
@@ -162,7 +163,7 @@ public class BillPdfGenerator {
 
             return byteArrayOutputStream.toByteArray();
         }catch (Exception ex){
-            throw new HandleException("Something Went Wrong" + ex.getMessage());
+            throw new HandleException("Something Went Wrong" + ex.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 }

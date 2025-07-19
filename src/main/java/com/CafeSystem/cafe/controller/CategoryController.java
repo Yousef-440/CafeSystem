@@ -97,7 +97,7 @@ public class CategoryController {
 
             return new ResponseEntity<>(category, HttpStatus.OK);
         } catch (Exception ex) {
-            throw new HandleException("Something Went Wrong");
+            throw new HandleException("Something Went Wrong", HttpStatus.BAD_REQUEST);
         }
     }
 

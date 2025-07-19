@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import java.io.IOException;
 
 public interface AuthUserService {
-    ResponseEntity <ApiResponse<?>> signup(UserDto userDto) throws MessagingException;
+    ResponseEntity <ApiResponse<SignUpUserResponse>> signup(SignUpUserDto signUpUserDto) throws MessagingException;
 
     ResponseEntity<ApiResponse<LoginResponseData>> login(LoginRequest loginRequest);
 

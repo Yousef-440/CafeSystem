@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.validation.BindException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -17,23 +16,24 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(HandleException.class)
-    public ResponseEntity<?> handleNotFoundException(HandleException ex){
+    public ResponseEntity<?> handleNotFoundException(HandleException ex, HttpStatus status){
         Map<String, Object> error = new HashMap<>();
         error.put("timestamp", LocalDateTime.now());
-        error.put("status", HttpStatus.NOT_FOUND.value());
+        error.put("status", status);
         error.put("message", ex.getMessage());
 
-        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(error, status);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<HashMap<String, List<String>>> handleBindException(BindException ex){
-       List<String>errors =  ex.getAllErrors().stream()
+    public ResponseEntity<HashMap<String, List<String>>> handleValidationException(MethodArgumentNotValidException ex) {
+        List<String> errors = ex.getBindingResult().getAllErrors().stream()
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .toList();
 
-       HashMap<String, List<String>> err = new HashMap<>();
-       err.put("errors", errors);
+        HashMap<String, List<String>> err = new HashMap<>();
+        err.put("errors", errors);
         return new ResponseEntity<>(err, HttpStatus.BAD_REQUEST);
     }
+
 }

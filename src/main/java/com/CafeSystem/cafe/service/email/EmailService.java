@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -17,8 +18,6 @@ import org.thymeleaf.TemplateEngine;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 import org.thymeleaf.context.Context;
 
@@ -103,6 +102,20 @@ public class EmailService {
 
         mailSender.send(mailMessage);
 
+    }
+
+    public void sendBillToUser(String email, String subject, byte[] pdfBytes) throws MessagingException {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper messageHelper = new MimeMessageHelper(message, true);
+
+        messageHelper.setFrom(fromEmail);
+        messageHelper.setTo(email);
+        messageHelper.setSubject(subject);
+
+        messageHelper.setText("Thank you for your purchase! Your Bill is attached.", false);
+        messageHelper.addAttachment("Bill.pdf",new ByteArrayResource(pdfBytes));
+
+        mailSender.send(message);
     }
 
 }

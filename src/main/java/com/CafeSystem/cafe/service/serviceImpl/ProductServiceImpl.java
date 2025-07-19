@@ -23,6 +23,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -55,12 +56,12 @@ public class ProductServiceImpl implements ProductService {
         log.info("AddProduct Function is Started");
 
         Category category = categoryRepository.findById(productDto.getCategoryId())
-                .orElseThrow(() -> new HandleException("Sorry, category not found"));
+                .orElseThrow(() -> new HandleException("Sorry, category not found", HttpStatus.NOT_FOUND));
 
         if (!currentUserUtil.isAdmin()) {
             String email = SecurityContextHolder.getContext().getAuthentication().getName();
             log.info("Unauthorized access attempt by email: {}", email);
-            throw new HandleException("Only admins are allowed");
+            throw new HandleException("Only admins are allowed",HttpStatus.UNAUTHORIZED);
         }
 
         try {
@@ -87,10 +88,10 @@ public class ProductServiceImpl implements ProductService {
 
         } catch (DataIntegrityViolationException ex) {
             throw new HandleException("The product {" + productDto.getName() + "} already exists in category => " +
-                    category.getName());
+                    category.getName() ,HttpStatus.BAD_REQUEST);
         } catch (Exception ex) {
             log.error("Unexpected error while adding product", ex);
-            throw new HandleException("Something went wrong while adding the product");
+            throw new HandleException("Something went wrong while adding the product", HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -128,7 +129,7 @@ public class ProductServiceImpl implements ProductService {
         log.info("Update request received for product ID: {}", id);
 
         if(!currentUserUtil.isAdmin()){
-            throw new HandleException("Only admins are allowed");
+            throw new HandleException("Only admins are allowed", HttpStatus.UNAUTHORIZED);
         }
 
         User user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName()).get();
@@ -136,7 +137,7 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Product with ID {} not found", id);
-                    return new HandleException("Sorry, Product Not Found");
+                    return new HandleException("Sorry, Product Not Found", HttpStatus.NOT_FOUND);
                 });
 
         ProductUpdateResponse oldData = productMapper.convert(product);
@@ -169,7 +170,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         if (!isUpdated) {
-            throw new HandleException("No data provided to update");
+            throw new HandleException("No data provided to update", HttpStatus.BAD_REQUEST);
         }
 
         productRepository.save(product);
@@ -218,17 +219,17 @@ public class ProductServiceImpl implements ProductService {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(()->new HandleException("Not Found"));
+                .orElseThrow(()->new HandleException("Not Found", HttpStatus.NOT_FOUND));
 
         if (!currentUserUtil.isAdmin()) {
             log.warn("Unauthorized delete product");
-            throw new HandleException("Only admins are allowed");
+            throw new HandleException("Only admins are allowed", HttpStatus.UNAUTHORIZED);
         }
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> {
                     log.info("product By id {} not found", id);
-                    return new HandleException("Sorry, id Not Found");
+                    return new HandleException("Sorry, id Not Found", HttpStatus.NOT_FOUND);
                 });
 
         productRepository.deleteById(id);
@@ -269,7 +270,7 @@ public class ProductServiceImpl implements ProductService {
 
         if (!currentUserUtil.isAdmin()) {
             log.warn("Unauthorized access to update product status");
-            throw new HandleException("Only admins are allowed");
+            throw new HandleException("Only admins are allowed", HttpStatus.UNAUTHORIZED);
         }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -277,7 +278,7 @@ public class ProductServiceImpl implements ProductService {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> {
                     log.error("User with email {} not found", authentication.getName());
-                    return new HandleException("User not found");
+                    return new HandleException("User not found",HttpStatus.NOT_FOUND);
                 });
 
 
@@ -286,7 +287,7 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("UpdateStatus=> Product with ID {} not found", id);
-                    return new HandleException("Product ID not found");
+                    return new HandleException("Product ID not found",HttpStatus.NOT_FOUND);
                 });
         String oldStatusValue = product.getStatus();
 
@@ -350,7 +351,7 @@ public class ProductServiceImpl implements ProductService {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Category with ID {} not found by user: {}", id, currentUser);
-                    return new HandleException("Category not found");
+                    return new HandleException("Category not found", HttpStatus.NOT_FOUND);
                 });
         log.info("Category with ID {} found: {}", id, category.getName());
 

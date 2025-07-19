@@ -14,14 +14,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class UserDto {
+public class SignUpUserDto {
 
     @Schema(
-            description = "Full name of the user. Must be between 3 and 25 characters.",
+            description = "Full name of the user. Must be between 3 and 25 characters and" +
+                    " not contain any special character",
             example = "Yousef"
     )
     @NotBlank(message = "Please fill in the name")
     @Size(min = 3, max = 25, message = "Name must be between 3 and 25 characters")
+    @Pattern(regexp = "^[a-zA-Z]+$", message = "The name must be letters only")
     private String name;
 
     @Schema(
@@ -33,8 +35,8 @@ public class UserDto {
     private String email;
 
     @Schema(
-            description = "User's contact number. Must be exactly 10 digits.",
-            example = "079......."
+            description = "Must be Jordanian number",
+            example = "079*******"
     )
     @NotBlank(message = "Please fill in the contact-number ")
     @Pattern(regexp = "^[0-9]{10}$", message = "Contact number must contain 10 digits")

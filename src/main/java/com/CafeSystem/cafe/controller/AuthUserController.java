@@ -2,8 +2,6 @@ package com.CafeSystem.cafe.controller;
 
 import com.CafeSystem.cafe.dto.*;
 import com.CafeSystem.cafe.dto.ApiResponse;
-import com.CafeSystem.cafe.repository.PasswordResetTokenRepository;
-import com.CafeSystem.cafe.repository.UserRepository;
 import com.CafeSystem.cafe.service.AuthUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,30 +9,26 @@ import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 
-@Tag(name = "Authentication User Controller", description = "Create a new account and log in," +
+@Tag(name = "Authentication User Controller", description = "Create new account and login," +
         " forget your password and change your password")
 @RestController
 @RequestMapping(path = "/api/v1/user")
 @RequiredArgsConstructor
 public class AuthUserController {
     private final AuthUserService userService;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final UserRepository userRepository;
 
     @Operation(
-            summary = "Create a new account",
+            summary = "Create new account",
             description = "To create a new account, the user must enter the name," +
-                    " email, phone number and password."
+                    " email, phone-number and password."
     )
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@Valid @RequestBody UserDto userDto) throws MessagingException {
-        return userService.signup(userDto);
+    public ResponseEntity<ApiResponse<SignUpUserResponse>> signup(@Valid @RequestBody SignUpUserDto signUpUserDto) throws MessagingException {
+        return userService.signup(signUpUserDto);
     }
 
     @Operation(

@@ -1,6 +1,5 @@
 package com.CafeSystem.cafe.repository;
 
-import com.CafeSystem.cafe.dto.UserProfileDto;
 import com.CafeSystem.cafe.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,8 +15,7 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
-    boolean existsByEmail(@Param("email") String email);
-    Optional<User> findByEmail(@Param("email") String email);
+    Optional<User> findByEmail(String email);
 
     @Query("SELECT u FROM User u WHERE u.role = 'ADMIN'")
     List<User> getAllAdmin();
@@ -28,10 +26,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Query("SELECT u FROM User u WHERE u.role ='USER'")
     Page<User> getAllUser(Pageable pageable);
 
+
     @Transactional
     @Modifying
     @Query("update User u set u.status = :status where u.id = :id")
-    Integer updateStatus(@Param("status") String status, @Param("id") Integer id);
-
-
+    void updateStatus(@Param("status") String status, @Param("id") Integer id);
 }

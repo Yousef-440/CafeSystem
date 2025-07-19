@@ -5,6 +5,7 @@ import com.CafeSystem.cafe.model.User;
 import com.CafeSystem.cafe.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -20,13 +21,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         log.info("Inside loadUserByUsername {}", email);
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new HandleException("Sorry, Email Not Found"));
-
-//        return org.springframework.security.core.userdetails.User.builder()
-//                .username(user.getEmail())
-//                .password(user.getPassword())
-//                .roles((user.getRole()).name())
-//                .build();
+                .orElseThrow(() -> new HandleException("Sorry, Email Not Found", HttpStatus.NOT_FOUND));
 
         return new CustomUserDetails(user);
 
