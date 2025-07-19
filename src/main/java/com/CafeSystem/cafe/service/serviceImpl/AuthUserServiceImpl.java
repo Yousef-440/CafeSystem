@@ -111,21 +111,16 @@ public class AuthUserServiceImpl implements AuthUserService {
                .orElseThrow(()->new HandleException("Invalid Token"));
 
         if (vToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            log.warn("Token in verification is Token Expired");
             return ResponseEntity.badRequest().body("Token Expired");
         }
 
         User user = vToken.getUser();
         user.setStatus(StatusType.ACTIVE);
         userRepository.save(user);
+        log.info("Account is ACTIVE");
         return ResponseEntity.ok("Email Verified Successfully");
     }
-
-
-
-
-
-
-
 
     @Override
     public ResponseEntity<ApiResponse<LoginResponseData>> login(LoginRequest loginRequest) {
