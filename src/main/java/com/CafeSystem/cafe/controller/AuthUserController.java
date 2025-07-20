@@ -45,6 +45,11 @@ public class AuthUserController {
         return userService.login(loginRequest);
     }
 
+    @PostMapping(path = "/refresh")
+    public ResponseEntity<?> refreshToken (@RequestBody RefreshRequest refreshToken){
+        return userService.refresh(refreshToken.getRefreshToken());
+    }
+
 
     @Operation(
             summary = "change the password",

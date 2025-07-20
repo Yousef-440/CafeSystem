@@ -20,7 +20,9 @@ import java.util.function.Function;
 public class JwtGenerator {
     @Value("${jwt.secret}")
     private String JWT_SECRETE;
-    private static final long EXPIRATION_TIME = 60 * 60 * 1000;
+
+    @Value("${jwt.expiration.time}")
+    private long EXPIRATION_TIME;
 
     public String extractUsername(String token){
         return extractClaims(token, Claims::getSubject);
@@ -58,7 +60,6 @@ public class JwtGenerator {
         return createToken(userDetails, claims);
     }
 
-
     private String createToken(UserDetails userDetails, Map<String,Object> claims) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME);
@@ -71,6 +72,16 @@ public class JwtGenerator {
                 .compact();
     }
 
+    public String refreshToken(UserDetails userDetails){
+        Date now = new Date();
+        Date expire = new Date(now.getTime() + EXPIRATION_TIME);
+        return Jwts.builder()
+                .subject(userDetails.getUsername())
+                .issuedAt(now)
+                .expiration(expire)
+                .signWith(getSignKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
 
     private Boolean isTokenExpired(String token){
         return extractExpiration(token).before(new Date());

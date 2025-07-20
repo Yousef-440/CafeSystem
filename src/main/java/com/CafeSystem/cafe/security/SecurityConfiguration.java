@@ -33,6 +33,7 @@ public class SecurityConfiguration {
                         .requestMatchers(
                                 "/api/v1/user/login",
                                 "/api/v1/user/signup",
+                                "/api/v1/user/refresh",
                                 "/api/v1/user/verify",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -54,7 +55,6 @@ public class SecurityConfiguration {
         var auth = httpSecurity.getSharedObject(AuthenticationManagerBuilder.class);
         auth.userDetailsService(customUserDetailsService)
                 .passwordEncoder(passwordEncoder());
-
         return auth.build();
     }
 }

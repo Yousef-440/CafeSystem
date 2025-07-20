@@ -7,9 +7,11 @@ import com.CafeSystem.cafe.enumType.StatusType;
 import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.mapper.UserMapper;
 import com.CafeSystem.cafe.model.PasswordResetToken;
+import com.CafeSystem.cafe.model.RefreshToken;
 import com.CafeSystem.cafe.model.User;
 import com.CafeSystem.cafe.model.UserVerificationToken;
 import com.CafeSystem.cafe.repository.PasswordResetTokenRepository;
+import com.CafeSystem.cafe.repository.RefreshTokenRepository;
 import com.CafeSystem.cafe.repository.UserRepository;
 import com.CafeSystem.cafe.repository.UserVerificationTokenRepository;
 import com.CafeSystem.cafe.security.CustomUserDetails;
@@ -27,6 +29,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,6 +57,8 @@ public class AuthUserServiceImpl implements AuthUserService {
     private final PasswordResetService passwordResetService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final UserVerificationTokenRepository userVerificationTokenRepository;
+    private final RefreshTokenService refreshTokenService;
+    private final UserDetailsService userDetailsService;
 
     @Override
     @Transactional
@@ -124,8 +131,8 @@ public class AuthUserServiceImpl implements AuthUserService {
 
     @Override
     public ResponseEntity<ApiResponse<LoginResponseData>> login(LoginRequest loginRequest) {
-        String email = loginRequest.getEmail();
-        String password = loginRequest.getPassword();
+        String email = loginRequest.getEmail().trim();
+        String password = loginRequest.getPassword().trim();
 
         log.info("Login attempt for email: {}", email);
 
@@ -148,12 +155,13 @@ public class AuthUserServiceImpl implements AuthUserService {
             throw e;
 
         }
-
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
 
         String token = jwtGenerator.generateToken(userDetails, userDetails.getRole().name());
         log.info("information of token userDetails: {} role: {}", userDetails, userDetails.getRole().name());
+
+        String refresh = refreshTokenService.createRefreshToken(userDetails.getId()).getToken();
 
         String welcomeMessage = "Welcome Back, " + userDetails.getName().toUpperCase();
 
@@ -161,6 +169,7 @@ public class AuthUserServiceImpl implements AuthUserService {
                 .message(welcomeMessage)
                 .email(userDetails.getEmail())
                 .token(token)
+                .refreshToken(refresh)
                 .build();
 
         ApiResponse<LoginResponseData> response = ApiResponse.<LoginResponseData>builder()
@@ -171,6 +180,24 @@ public class AuthUserServiceImpl implements AuthUserService {
 
         log.info("Login response prepared for user: {}", userDetails.getEmail());
         return ResponseEntity.ok(response);
+    }
+
+    @Override
+    public ResponseEntity<?> refresh(String refreshToken) {
+        Optional<RefreshToken> token = refreshTokenService.getByToken(refreshToken);
+        if(token.isEmpty()){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token");
+        }
+
+        RefreshToken refresh = token.get();
+        if (refreshTokenService.isExpired(refresh)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token expired");
+        }
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(refresh.getUser().getEmail());
+        String newAccessToken = jwtGenerator.refreshToken(userDetails);
+
+        return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
     }
 
 

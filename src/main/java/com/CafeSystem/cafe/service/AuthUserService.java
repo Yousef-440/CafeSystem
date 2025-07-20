@@ -19,4 +19,6 @@ public interface AuthUserService {
     ResponseEntity<String> resetPassword(String passwordRestToken, String newPass);
 
     ResponseEntity<String> verifyEmail(String token);
+
+    ResponseEntity<?> refresh(String refreshToken);
 }

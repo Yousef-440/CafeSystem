@@ -13,4 +13,5 @@ public class LoginResponseData {
     private String message;
     private String email;
     private String token;
+    private String refreshToken;
 }
