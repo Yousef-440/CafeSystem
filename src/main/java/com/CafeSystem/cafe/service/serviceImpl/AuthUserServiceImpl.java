@@ -11,7 +11,6 @@ import com.CafeSystem.cafe.model.RefreshToken;
 import com.CafeSystem.cafe.model.User;
 import com.CafeSystem.cafe.model.UserVerificationToken;
 import com.CafeSystem.cafe.repository.PasswordResetTokenRepository;
-import com.CafeSystem.cafe.repository.RefreshTokenRepository;
 import com.CafeSystem.cafe.repository.UserRepository;
 import com.CafeSystem.cafe.repository.UserVerificationTokenRepository;
 import com.CafeSystem.cafe.security.CustomUserDetails;

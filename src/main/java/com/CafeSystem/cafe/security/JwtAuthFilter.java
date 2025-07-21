@@ -25,9 +25,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtGenerator jwtGenerator;
     private final CustomUserDetailsService userDetailsService;
 
+
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)throws ServletException, IOException {
 
         try {
             String authHeader = request.getHeader("Authorization");
@@ -52,7 +52,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         } catch (Exception ex) {
             log.error("JWT Filter Error");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("{\"error\": \"Invalid or expired token\"}");
+            response.getWriter().write("{\n\t \"error\": \"Invalid or expired token\"\n}");
             return;
         }
 
@@ -60,15 +60,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
 
-    private static final List<String> excludedPaths = List.of(
+    private final List<String> paths = List.of(
             "/api/v1/user/login",
-            "/api/v1/user/signup"
+            "/api/v1/user/signup",
+            "/api/v1/user/refresh"
     );
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return excludedPaths.stream().anyMatch(path::startsWith);
+        return paths.stream().anyMatch(path::startsWith);
     }
 }
 

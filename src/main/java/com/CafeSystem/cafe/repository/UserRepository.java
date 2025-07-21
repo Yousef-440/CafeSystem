@@ -1,5 +1,6 @@
 package com.CafeSystem.cafe.repository;
 
+import com.CafeSystem.cafe.enumType.StatusType;
 import com.CafeSystem.cafe.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,4 +33,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Modifying
     @Query("update User u set u.status = :status where u.id = :id")
     void updateStatus(@Param("status") String status, @Param("id") Integer id);
+
+
+    List<User> findByStatusAndCreatedAtBefore(StatusType statusType, LocalDateTime time);
 }

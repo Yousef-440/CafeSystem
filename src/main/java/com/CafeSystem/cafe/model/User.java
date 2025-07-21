@@ -54,4 +54,7 @@ public class User {
     @UpdateTimestamp
     @JsonFormat(pattern = "dd-MM-yyyy, HH:mm")
     private LocalDateTime modifiedAt;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private UserVerificationToken token;
 }
