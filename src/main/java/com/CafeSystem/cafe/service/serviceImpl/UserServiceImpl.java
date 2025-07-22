@@ -28,7 +28,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -100,7 +99,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public ApiResponse<UpdateComparisonDto> updateUser(UpdateUserRequest userRequest, int id) {
+    public ResponseEntity<ApiResponse<UpdateComparisonDto>> updateUser(UpdateUserRequest userRequest, int id) {
         log.info("Starting updateUser process for userId: {}", id);
 
         User user = userRepository.findById(id)
@@ -128,9 +127,10 @@ public class UserServiceImpl implements UserService {
                 .modifiedAt(user.getModifiedAt())
                 .build();
 
-        user.setName(userRequest.getName());
-        user.setEmail(userRequest.getEmail());
-        user.setContactNumber(userRequest.getContactNumber());
+        Optional.ofNullable(userRequest.getEmail()).ifPresent(user::setEmail);
+        Optional.ofNullable(userRequest.getContactNumber()).ifPresent(user::setContactNumber);
+        Optional.ofNullable(userRequest.getName()).ifPresent(user::setName);
+
 
         Optional<User> founded = userRepository.findByEmail(userRequest.getEmail());
         if(founded.isPresent() && !Objects.equals(founded.get().getId(), user.getId())){
@@ -152,11 +152,13 @@ public class UserServiceImpl implements UserService {
                 .after(newDataUser)
                 .build();
 
-        return ApiResponse.<UpdateComparisonDto>builder()
+        ApiResponse<UpdateComparisonDto> updated = ApiResponse.<UpdateComparisonDto>builder()
                 .status("success")
                 .message("Data updated successfully!")
                 .data(comparison)
                 .build();
+
+        return ResponseEntity.ok(updated);
     }
 
     @Override

@@ -16,7 +16,8 @@ import lombok.NoArgsConstructor;
 @Builder
 public class UpdateUserRequest {
     @NotBlank(message = "Name must not be blank")
-    @Size(min = 2, max = 50, message = "Name must be between 2 and 50 characters")
+    @Size(min = 3, max = 25, message = "Name must be between 3 and 25 characters")
+    @Pattern(regexp = "^[a-zA-Z]+$", message = "The name must be letters only")
     @Schema(description = "name of User" ,example = "Yousef")
     private String name;
 

@@ -12,7 +12,7 @@ public interface UserService {
     Page<UserProfileDto> AllUserAndAdmin(int page, int limitation);
     Page<UserProfileDto> getAllAdmin(int offset, int size);
     Page<UserProfileDto> getAllUsers(int offset, int size);
-    ApiResponse<UpdateComparisonDto> updateUser(UpdateUserRequest userRequest, int id);
+    ResponseEntity<ApiResponse<UpdateComparisonDto>> updateUser(UpdateUserRequest userRequest, int id);
     ResponseEntity<String> updateStatusByAdmin(StatusUpdateRequest request);
 
     ResponseEntity<String> checkToken();

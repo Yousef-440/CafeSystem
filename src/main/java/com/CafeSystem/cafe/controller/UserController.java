@@ -143,10 +143,7 @@ public class UserController {
     @PutMapping("/updateData/{id}")
     public ResponseEntity<ApiResponse<UpdateComparisonDto>> update(@RequestBody UpdateUserRequest updateUserRequest
             , @PathVariable int id){
-
-         ApiResponse<UpdateComparisonDto> updated = userService.updateUser(updateUserRequest, id);
-
-         return new ResponseEntity<>(updated, HttpStatus.OK);
+                return userService.updateUser(updateUserRequest, id);
     }
 
     @Operation(
