@@ -47,11 +47,14 @@ public class AuthUserController {
         return userService.login(loginRequest);
     }
 
+    @Operation(
+            summary = "Refresh Token",
+            description = "Generates a new access token using a valid refresh token to maintain user authentication without requiring re-login."
+    )
     @PostMapping(path = "/refresh")
     public ResponseEntity<?> refreshToken (@RequestBody RefreshRequest refreshToken){
         return userService.refresh(refreshToken.getRefreshToken());
     }
-
 
     @Operation(
             summary = "change the password",

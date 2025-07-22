@@ -36,4 +36,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
 
     List<User> findByStatusAndCreatedAtBefore(StatusType statusType, LocalDateTime time);
+
+    @Query("SELECT u FROM User u WHERE LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))")
+    Page<User> searchByNameContainingIgnoreCase(@Param("name") String name, Pageable pageable);
 }

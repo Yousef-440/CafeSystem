@@ -18,5 +18,4 @@ public class PaginatedResponse <T>{
     boolean hasPrevious;
     String nextPageURL;
     String prevPageURL;
-
 }

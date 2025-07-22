@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 
 @SecurityRequirement(name = "bearerAuth")
 @Tag(name = "User Controller", description = "Fetch and update data")
@@ -37,20 +39,20 @@ public class UserController {
                     description = "Page Number Starting from 1",
                     example = "1",
                     required = false
-            )
-            @RequestParam(defaultValue = "1") int page,
+            ) @RequestParam(defaultValue = "1") int page,
+
             @Parameter(
                     description = "Number of users per page",
                     example = "3",
                     required = false
-            )
-            @RequestParam(defaultValue = "3") int limitation,
+            ) @RequestParam(defaultValue = "3") int limitation,
+
             HttpServletRequest servletRequest
     ){
         int zeroBasedPage = page - 1;
         Page<UserProfileDto> allPerson = userService.AllUserAndAdmin(zeroBasedPage, limitation);
 
-        PaginatedResponse<UserProfileDto> test = currentUserUtil.buildPaginatedResponse(
+        PaginatedResponse<UserProfileDto> all = currentUserUtil.buildPaginatedResponse(
                 allPerson,
                 page,
                 limitation,
@@ -58,8 +60,7 @@ public class UserController {
                 "page","limitation"
         );
 
-
-        return new ResponseEntity<>(test, HttpStatus.OK);
+        return new ResponseEntity<>(all, HttpStatus.OK);
     }
 
     @Operation(
@@ -116,6 +117,15 @@ public class UserController {
                "size"
        );
        return new ResponseEntity<>(users,HttpStatus.OK);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<PaginatedResponse<UserProfileDto>> searchByUsername(
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "4") int size,
+            HttpServletRequest request,
+            @RequestParam String name){
+        return userService.searchByUsername(name, offset, size, request);
     }
 
     @Operation(

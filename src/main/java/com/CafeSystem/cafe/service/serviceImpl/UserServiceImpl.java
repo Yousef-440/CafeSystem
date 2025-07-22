@@ -3,14 +3,17 @@ package com.CafeSystem.cafe.service.serviceImpl;
 import com.CafeSystem.cafe.dto.*;
 import com.CafeSystem.cafe.dto.ApiResponse;
 import com.CafeSystem.cafe.exception.HandleException;
+import com.CafeSystem.cafe.mapper.UserMapper;
 import com.CafeSystem.cafe.model.User;
 import com.CafeSystem.cafe.repository.UserRepository;
 import com.CafeSystem.cafe.security.JwtAuthFilter;
 import com.CafeSystem.cafe.security.JwtGenerator;
+import com.CafeSystem.cafe.security.UserPrincipal;
 import com.CafeSystem.cafe.service.UserService;
 import com.CafeSystem.cafe.service.email.EmailService;
 import com.CafeSystem.cafe.utils.CafeUtil;
 import com.CafeSystem.cafe.utils.CurrentUserUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -25,6 +28,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -32,31 +36,31 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private JwtAuthFilter jwtAuthFilter;
-
     @Autowired
     private JwtGenerator jwtGenerator;
-
     @Autowired
     private CurrentUserUtil currentUserUtil;
-
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private UserPrincipal userPrincipal;
+    @Autowired
+    private UserMapper userMapper;
 
     @Override
     public Page<UserProfileDto> AllUserAndAdmin(int page, int limit) {
         log.info("AllUserAndAdmin Function STARTED");
 
-        if (currentUserUtil.isAdmin()) {
+        if (userPrincipal.isAdmin()) {
             log.info("Admin accessed getAll endpoint");
             Pageable pageable = PageRequest.of(page, limit);
-            log.info("the page is: {}", pageable);
             Page<User> all = userRepository.findAll(pageable);
             log.debug("Total user and admin found: {}", all.getTotalElements());
 
-            return all.map(this::mapToUserProfileDto);
+            return all.map(userMapper::mapToUserProfileDto);
+
         } else {
             log.warn("Unauthorized access attempt to getAllUsersAndAdmin");
             throw new HandleException("Unauthorized: Only 'Admin' can access this");
@@ -218,6 +222,31 @@ public class UserServiceImpl implements UserService {
     @Override
     public ResponseEntity<String> checkToken() {
         return CafeUtil.getResponseEntity(" Token is valid", HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<PaginatedResponse<UserProfileDto>> searchByUsername(String name,  int offset,
+                                                                              int size, HttpServletRequest request) {
+
+        if (!userPrincipal.isAdmin()) {
+            throw new HandleException("Unauthorized: Only admin users are allowed to perform this action");
+        }
+        Pageable pageable = PageRequest.of(offset, size);
+        Page<User> result =  userRepository.searchByNameContainingIgnoreCase(name, pageable);
+        Page<UserProfileDto> userResult = result.map(userMapper::mapToUserProfileDto);
+
+        String extraParams = "&name=" + name;
+        PaginatedResponse <UserProfileDto> mapResult = currentUserUtil.buildPaginatedResponseToSearchByName(
+                userResult,
+                offset,
+                size,
+                request.getRequestURL().toString()
+                ,"offset",
+                "size",
+                extraParams
+        );
+
+        return ResponseEntity.ok(mapResult);
     }
 
     private UserProfileDto mapToUserProfileDto(User user) {
