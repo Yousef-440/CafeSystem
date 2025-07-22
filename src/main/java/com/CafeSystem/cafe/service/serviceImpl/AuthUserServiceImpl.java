@@ -205,11 +205,9 @@ public class AuthUserServiceImpl implements AuthUserService {
         log.info("changePassword Function Started");
         try {
             User user = currentUserUtil.getCurrentUser()
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new RuntimeException("Invalid"));
 
             if (passwordEncoder.matches(passwordChangeRequest.getOldPassword(), user.getPassword())) {
-                log.info(" Password updated successfully for user: {}", user.getEmail());
-
                 if (passwordChangeRequest.getOldPassword().equals(passwordChangeRequest.getNewPassword())) {
                     log.warn("New password matches the old password for user: {}", user.getEmail());
                     return CafeUtil.getResponseEntity("New password must be different from old password.",
@@ -218,7 +216,9 @@ public class AuthUserServiceImpl implements AuthUserService {
 
                 user.setPassword(passwordEncoder.encode(passwordChangeRequest.getNewPassword()));
                 userRepository.save(user);
-                emailService.sendWhenChangePassword(user.getEmail());
+                log.info(" Password updated successfully for user: {}", user.getEmail());
+
+                emailService.sendWhenChangePassword(user.getEmail(),user.getName());
                 return CafeUtil.getResponseEntity("Password Updated Successfully", HttpStatus.OK);
 
             } else {
@@ -244,7 +244,8 @@ public class AuthUserServiceImpl implements AuthUserService {
         if (user.getEmail() != null) {
             emailService.sendResetLink(
                     user.getEmail(),
-                    passwordResetService.createRestToken(user)
+                    passwordResetService.createRestToken(user),
+                    user.getName()
             );
             log.info("Password reset link sent to: {}", user.getEmail());
             return CafeUtil.getResponseEntity("Check Your Email", HttpStatus.OK);
@@ -255,10 +256,8 @@ public class AuthUserServiceImpl implements AuthUserService {
 
     @Override
     public ResponseEntity<String> resetPassword(String passwordRestToken, String newPass) {
-        PasswordResetToken token =
-                passwordResetTokenRepository.findByToken(passwordRestToken).orElseThrow(
-                        ()->new HandleException("Invalid Token")
-                );
+        PasswordResetToken token = passwordResetTokenRepository.findByToken(passwordRestToken).orElseThrow(
+                        ()->new HandleException("Invalid Token"));
 
         if (token.getExpiryDate().before(new Date())) {
             return ResponseEntity.badRequest().body("Token expired");
@@ -267,6 +266,7 @@ public class AuthUserServiceImpl implements AuthUserService {
         User user = token.getUser();
         user.setPassword(passwordEncoder.encode(newPass));
         userRepository.save(user);
+        log.info("Password Changed success");
 
         passwordResetTokenRepository.delete(token);
 

@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -18,6 +17,7 @@ import org.thymeleaf.TemplateEngine;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 import org.thymeleaf.context.Context;
 
@@ -51,21 +51,46 @@ public class EmailService {
     }
 
 
-    public void sendResetLink(String to, String token) throws MessagingException, IOException {
-        String resetLink = "http://localhost:8081/api/v1/user/restPassword?passwordRestToken=" + token;
-        log.info("The token is: {}", token);
-        ClassPathResource resource = new ClassPathResource("templates/rest.html");
-        String content = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        content = content.replace("{{RESET_LINK}}", resetLink);
-
+    public void sendResetLink(String to, String token, String name) throws MessagingException, IOException {
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
 
         helper.setFrom(fromEmail);
         helper.setTo(to);
         helper.setSubject("Password-Reset");
-        helper.setText(content, true);
 
+        String resetLink = "http://localhost:8081/api/v1/user/resetPassword?passwordRestToken=" + token;
+
+        String htmlContent = """
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Password Reset</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px; margin: 0;">
+            <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+                <div style="font-size: 24px; color: #333; margin-bottom: 20px;">
+                    Password Reset Request
+                </div>
+                <div style="font-size: 16px; color: #444; line-height: 1.6;">
+                    <p>Dear, {name}</p>
+                    <p>We received a request to reset your password for your <strong>Cafe System</strong> account.</p>
+                    <p>Click the button below to reset your password:</p>
+                    <a href="{resetLink}" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #007bff; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Password</a>
+       
+                    <p style="margin-top: 20px;">This link will expire in 15 minutes for your security.</p>
+                </div>
+      
+                <div style="margin-top: 40px; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 15px; text-align: center;">
+                    If you didn't request this, please ignore this email.<br>
+                    &copy; 2025 Cafe System. All rights reserved.
+                </div>
+            </div>
+        </body>
+        </html>
+       """.replace("{name}", name).replace("{resetLink}", resetLink);
+
+        helper.setText(htmlContent, true);
         mailSender.send(mimeMessage);
     }
 
@@ -88,21 +113,34 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    public void sendWhenChangePassword(String to){
-        SimpleMailMessage mailMessage = new SimpleMailMessage();
-        mailMessage.setFrom(fromEmail);
-        mailMessage.setTo(to);
-        mailMessage.setSubject("Password change successfully");
-        mailMessage.setText("Hello,\n" +
-                "\n" +
-                "Your password was successfully updated. If you did not make this change, please contact our support team immediately.\n" +
-                "\n" +
-                "Stay secure,\n" +
-                "Cafe System Team" +
-                "\n");
+    public void sendWhenChangePassword(String to, String name) throws MessagingException {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-        mailSender.send(mailMessage);
+        helper.setFrom(fromEmail);
+        helper.setTo(to);
+        helper.setSubject("Password change notification");
 
+        String htmlContent = """
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #2c3e50;">Password Changed Successfully</h2>
+                    <p>Hello, {name}</p>
+                    <p>Your password was successfully updated on <span style="font-weight: bold;">{date}</span>.</p>
+        
+                    <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #dc3545; margin: 20px 0;">
+                        <p style="margin: 0;">If you didn't make this change, please contact our support team immediately.</p>
+                    </div>
+        
+                    <p>Stay secure,<br>The Cafe System Team</p>
+                </div>
+            </body>
+        </html>
+        """.replace("{date}", LocalDate.now().toString()).replace("{name}", name);
+
+        helper.setText(htmlContent, true);
+        mailSender.send(message);
     }
 
     public void sendBillToUser(String email, String subject, byte[] pdfBytes) throws MessagingException {

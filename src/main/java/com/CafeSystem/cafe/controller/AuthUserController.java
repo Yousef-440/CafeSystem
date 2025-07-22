@@ -8,11 +8,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 
+@Slf4j
 @Tag(name = "Authentication User Controller", description = "Create new account and login," +
         " forget your password and change your password")
 @RestController
@@ -56,7 +58,7 @@ public class AuthUserController {
             description = "Change password using old password verification"
     )
     @PostMapping(path = "/changePassword")
-    public ResponseEntity<String> changePassword(@RequestBody PasswordChangeRequest passwordChangeRequest){
+    public ResponseEntity<String> changePassword(@Valid @RequestBody PasswordChangeRequest passwordChangeRequest){
         return userService.changePassword(passwordChangeRequest);
     }
 
@@ -78,7 +80,8 @@ public class AuthUserController {
     @PostMapping(path = "/resetPassword")
     public ResponseEntity<String> restPassword(
             @RequestParam String passwordRestToken,
-            @RequestBody PasswordResetRequest passwordResetRequest){
+            @Valid @RequestBody PasswordResetRequest passwordResetRequest){
+        log.info("restPassword endpoint is started");
         return userService.resetPassword(passwordRestToken, passwordResetRequest.getNewPassword());
     }
 }
