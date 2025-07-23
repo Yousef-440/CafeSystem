@@ -43,7 +43,6 @@ public class EmailService {
         mailMessage.setText(text);
         mailSender.send(mailMessage);
     }
-
     private String[] getToArray(List<User> users) {
         return users.stream()
                 .map(User::getEmail)

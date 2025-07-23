@@ -32,8 +32,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Transactional
     @Modifying
     @Query("update User u set u.status = :status where u.id = :id")
-    void updateStatus(@Param("status") String status, @Param("id") Integer id);
-
+    void updateStatus(@Param("status") StatusType status, @Param("id") Integer id);
 
     List<User> findByStatusAndCreatedAtBefore(StatusType statusType, LocalDateTime time);
 

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 public class StatusUpdateRequest {
-    @Schema(description = "Status", example = "True/False")
+    @Schema(description = "Status", example = " ACTIVE, INACTIVE, PENDING, BLOCKED")
     private String status;
     @Schema(description = "The user ID number you want to update", example = "1")
     private Integer id;

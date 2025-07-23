@@ -2,11 +2,11 @@ package com.CafeSystem.cafe.service.serviceImpl;
 
 import com.CafeSystem.cafe.dto.*;
 import com.CafeSystem.cafe.dto.ApiResponse;
+import com.CafeSystem.cafe.enumType.StatusType;
 import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.mapper.UserMapper;
 import com.CafeSystem.cafe.model.User;
 import com.CafeSystem.cafe.repository.UserRepository;
-import com.CafeSystem.cafe.security.JwtAuthFilter;
 import com.CafeSystem.cafe.security.JwtGenerator;
 import com.CafeSystem.cafe.security.UserPrincipal;
 import com.CafeSystem.cafe.service.UserService;
@@ -14,8 +14,8 @@ import com.CafeSystem.cafe.service.email.EmailService;
 import com.CafeSystem.cafe.utils.CafeUtil;
 import com.CafeSystem.cafe.utils.CurrentUserUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,25 +28,19 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private JwtAuthFilter jwtAuthFilter;
-    @Autowired
-    private JwtGenerator jwtGenerator;
-    @Autowired
-    private CurrentUserUtil currentUserUtil;
-    @Autowired
-    private EmailService emailService;
-    @Autowired
-    private UserPrincipal userPrincipal;
-    @Autowired
-    private UserMapper userMapper;
+    private final UserRepository userRepository;
+    private final JwtGenerator jwtGenerator;
+    private final CurrentUserUtil currentUserUtil;
+    private final EmailService emailService;
+    private final UserPrincipal userPrincipal;
+    private final UserMapper userMapper;
 
     @Override
     public Page<UserProfileDto> AllUserAndAdmin(int page, int limit) {
@@ -75,7 +69,7 @@ public class UserServiceImpl implements UserService {
             Page<User> admins = userRepository.getAllAdmin(pageable);
             log.debug("Total admins found: {}", admins.getTotalElements());
 
-            return admins.map(this::mapToUserProfileDto);
+            return admins.map(userMapper::mapToUserProfileDto);
 
         } else {
             log.warn("Unauthorized access attempt to getAllAdmin");
@@ -91,7 +85,7 @@ public class UserServiceImpl implements UserService {
             Page<User> users = userRepository.getAllUser(pageable);
             log.debug("Total users found: {}", users.getTotalElements());
 
-            return users.map(this::mapToUserProfileDto);
+            return users.map(userMapper::mapToUserProfileDto);
         }else{
             log.info("Unauthorized access attempt to getAllUsers");
             throw new HandleException("Unauthorized: Only 'Admin' can access this");
@@ -163,63 +157,117 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ResponseEntity<String> updateStatusByAdmin(StatusUpdateRequest request) {
-        if (currentUserUtil.isAdmin()) {
-            log.info("Admin initiated status update for user with ID: {}", request.getId());
-
-            User user = userRepository.findById(request.getId())
-                    .orElseThrow(() -> {
-                        log.error("Status update failed - User with ID {} not found", request.getId());
-                        return new HandleException("User not found with ID: " + request.getId());
-                    });
-
-            sendEmailToAllAdmin(request.getStatus(), user.getEmail(), userRepository.getAllAdmin(), request.getToken());
-
-            userRepository.updateStatus(request.getStatus(), request.getId());
-
-            log.info("User status successfully updated for ID: {}", request.getId());
-            return new ResponseEntity<>("User status has been successfully updated.", HttpStatus.OK);
+        if (!userPrincipal.isAdmin()) {
+            log.warn("Unauthorized access attempt to update user status detected.");
+            return CafeUtil.getResponseEntity("You are not authorized to perform this action.", HttpStatus.BAD_REQUEST);
         }
 
-        log.warn("Unauthorized access attempt to update user status detected.");
-        return CafeUtil.getResponseEntity("You are not authorized to perform this action.", HttpStatus.BAD_REQUEST);
+        Integer userId = request.getId();
+        String requestedStatus = request.getStatus();
+        String token = request.getToken();
+
+        log.info("Admin initiated status update for user with ID: {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.error("Status update failed - User with ID {} not found", userId);
+                    return new HandleException("User not found with ID: " + userId);
+                });
+
+        StatusType newStatus;
+        try {
+            newStatus = StatusType.valueOf(requestedStatus.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid status provided: {}", requestedStatus);
+            throw new HandleException("Invalid status: " + requestedStatus);
+        }
+
+        userRepository.updateStatus(newStatus, userId);
+
+        List<User> admins = userRepository.getAllAdmin();
+        sendEmailToAllAdmin(newStatus.name(), user.getEmail(), admins, token, userId);
+
+        log.info("User status successfully updated for ID: {}", userId);
+        return ResponseEntity.ok("User status has been successfully updated.");
     }
 
-
-    public void sendEmailToAllAdmin(String status, String userEmail, List<User> allAdmin, String token) {
+    public void sendEmailToAllAdmin(String status, String userEmail, List<User> allAdmin, String token, int id) {
         String currentEmail = jwtGenerator.extractUsername(token);
+        User user = userRepository.findById(id).orElseThrow(() -> new HandleException("User not found"));
 
-        List<User> ccAdmins = allAdmin.stream()
+        List<User> admins = allAdmin.stream()
                 .filter(admin -> !admin.getEmail().equals(currentEmail))
-                .toList();
+                .collect(Collectors.toList());
 
-        String subject;
-        String body;
+        String adminSubject;
+        String adminBody;
 
-        if (status.equalsIgnoreCase("true")) {
-            subject = "Account Approval Notification";
-            body = "Dear Admins,\n\n" +
-                    "This is to inform you that the account associated with the email: " + userEmail +
-                    " has been 'approved' by administrator: " + currentEmail + ".\n\n" +
-                    "If you have any concerns, please contact the approving administrator directly.\n\n" +
-                    "Best regards,\nCafe Management System";
-        } else {
-            subject = "Account Deactivation Notification";
-            body = "Dear Admins,\n\n" +
-                    "This is to notify you that the account associated with the email: " + userEmail +
-                    " has been 'deactivated' by administrator: " + currentEmail + ".\n\n" +
-                    "For further details or questions, please follow up with the responsible admin.\n\n" +
-                    "Best regards,\nCafe Management System";
+        String userSubject;
+        String userBody;
+
+        switch (status.toUpperCase()) {
+            case "ACTIVE" -> {
+                adminSubject = "Account Activation Notification";
+                adminBody = "Dear Admins,\n\n" +
+                        "The account with email: " + userEmail + " has been *activated* by administrator: " + currentEmail + ".\n\n" +
+                        "Best regards,\nCafe Management System";
+
+                userSubject = "Your Account Has Been Activated!";
+                userBody = "Dear " + user.getName() + ",\n\n" +
+                        "Good news! Your account has been *activated* and is now ready to use.\n\n" +
+                        "Welcome to the system!\n\n" +
+                        "Best regards,\nCafe Management System";
+            }
+
+            case "INACTIVE" -> {
+                adminSubject = "Account Deactivation Notification";
+                adminBody = "Dear Admins,\n\n" +
+                        "The account with email: " + userEmail + " has been *deactivated* by administrator: " + currentEmail + ".\n\n" +
+                        "Best regards,\nCafe Management System";
+
+                userSubject = "Your Account Has Been Deactivated";
+                userBody = "Dear " + user.getName() + ",\n\n" +
+                        "We would like to inform you that your account has been *deactivated* by the system administrator.\n\n" +
+                        "If you think this was done in error, please contact support.\n\n" +
+                        "Best regards,\nCafe Management System";
+            }
+
+            case "PENDING" -> {
+                adminSubject = "Account Status Set to Pending";
+                adminBody = "Dear Admins,\n\n" +
+                        "The account with email: " + userEmail + " has been moved to *PENDING* status by administrator: " + currentEmail + ".\n\n" +
+                        "Best regards,\nCafe Management System";
+
+                userSubject = "Your Account is Under Review";
+                userBody = "Dear " + user.getName() + ",\n\n" +
+                        "Your account status has been set to *PENDING*. This means it is currently under review.\n\n" +
+                        "We'll notify you once a decision has been made.\n\n" +
+                        "Best regards,\nCafe Management System";
+            }
+
+            case "BLOCKED" -> {
+                adminSubject = "Account Blocked Notification";
+                adminBody = "Dear Admins,\n\n" +
+                        "The account with email: " + userEmail + " has been *BLOCKED* by administrator: " + currentEmail + ".\n\n" +
+                        "Please review this action if necessary.\n\n" +
+                        "Best regards,\nCafe Management System";
+
+                userSubject = "Your Account Has Been Blocked";
+                userBody = "Dear " + user.getName() + ",\n\n" +
+                        "We regret to inform you that your account has been *BLOCKED* due to a violation of our policies or as per administrative decision.\n\n" +
+                        "If you believe this is a mistake, please contact the administration.\n\n" +
+                        "Best regards,\nCafe Management System";
+            }
+
+            default -> {
+                log.warn("Unknown status received: {}", status);
+                return;
+            }
         }
 
-        log.info("Dispatching email notification: [{}] to admin: {}, CC {} admins", subject, currentEmail, ccAdmins.size());
-
-        emailService.sendEmailToAdmins(
-                subject,
-                body,
-                ccAdmins
-        );
+        emailService.sendEmailToAdmins(adminSubject, adminBody, admins);
+        emailService.sendEmailToAdmins(userSubject, userBody, List.of(user));
     }
-
 
     @Override
     public ResponseEntity<String> checkToken() {
@@ -229,7 +277,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public ResponseEntity<PaginatedResponse<UserProfileDto>> searchByUsername(String name,  int offset,
                                                                               int size, HttpServletRequest request) {
-
         if (!userPrincipal.isAdmin()) {
             throw new HandleException("Unauthorized: Only admin users are allowed to perform this action");
         }
@@ -249,16 +296,5 @@ public class UserServiceImpl implements UserService {
         );
 
         return ResponseEntity.ok(mapResult);
-    }
-
-    private UserProfileDto mapToUserProfileDto(User user) {
-        return UserProfileDto.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .contactNumber(user.getContactNumber())
-                .status(user.getStatus().name())
-                .role(user.getRole().name())
-                .build();
     }
 }
