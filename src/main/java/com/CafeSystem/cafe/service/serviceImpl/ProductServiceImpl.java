@@ -3,7 +3,10 @@ package com.CafeSystem.cafe.service.serviceImpl;
 import com.CafeSystem.cafe.dto.ApiResponse;
 import com.CafeSystem.cafe.dto.PaginatedResponse;
 import com.CafeSystem.cafe.dto.productDto.*;
+import com.CafeSystem.cafe.exception.DuplicateResourceException;
 import com.CafeSystem.cafe.exception.HandleException;
+import com.CafeSystem.cafe.exception.ResourceNotFoundException;
+import com.CafeSystem.cafe.exception.UnauthorizedException;
 import com.CafeSystem.cafe.mapper.ProductMapper;
 import com.CafeSystem.cafe.model.Category;
 import com.CafeSystem.cafe.model.Product;
@@ -17,13 +20,12 @@ import com.CafeSystem.cafe.service.ProductService;
 import com.CafeSystem.cafe.service.email.EmailService;
 import com.CafeSystem.cafe.utils.CurrentUserUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,35 +36,30 @@ import java.util.List;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
 
-    @Autowired
-    private ProductRepository productRepository;
-    @Autowired
-    private CategoryRepository categoryRepository;
-    @Autowired
-    private CurrentUserUtil currentUserUtil;
-    @Autowired
-    private ProductMapper productMapper;
-    @Autowired
-    private EmailService emailService;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private ProductUpdateLogRepository repository;
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+    private final CurrentUserUtil currentUserUtil;
+    private final ProductMapper productMapper;
+    private final EmailService emailService;
+    private final UserRepository userRepository;
+    private final ProductUpdateLogRepository repository;
+
+    private void checkAdminAccess() {
+        if (!currentUserUtil.isAdmin()) {
+            log.warn("Unauthorized access attempt");
+            throw new UnauthorizedException("Unauthorized access");
+        }
+    }
 
     @Override
     public ResponseEntity<ApiResponse<ProductAddResponse>> addProduct(ProductDto productDto) {
-        log.info("AddProduct Function is Started");
-
+        log.info("Add-Product Function is Started");
         Category category = categoryRepository.findById(productDto.getCategoryId())
-                .orElseThrow(() -> new HandleException("Sorry, category not found"));
-
-        if (!currentUserUtil.isAdmin()) {
-            String email = SecurityContextHolder.getContext().getAuthentication().getName();
-            log.info("Unauthorized access attempt by email: {}", email);
-            throw new HandleException("Only admins are allowed");
-        }
+                .orElseThrow(() -> new ResourceNotFoundException("Sorry, category not found"));
+        checkAdminAccess();
 
         try {
             Product product = productMapper.toEntity(productDto);
@@ -87,7 +84,7 @@ public class ProductServiceImpl implements ProductService {
             return ResponseEntity.ok(response);
 
         } catch (DataIntegrityViolationException ex) {
-            throw new HandleException("The product {" + productDto.getName() + "} already exists in category => " +
+            throw new DuplicateResourceException("The product {" + productDto.getName() + "} already exists in category => " +
                     category.getName());
         } catch (Exception ex) {
             log.error("Unexpected error while adding product", ex);

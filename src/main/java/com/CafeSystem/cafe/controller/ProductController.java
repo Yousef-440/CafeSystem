@@ -5,12 +5,10 @@ import com.CafeSystem.cafe.dto.PaginatedResponse;
 import com.CafeSystem.cafe.dto.productDto.*;
 import com.CafeSystem.cafe.service.ProductService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.hibernate.query.Page;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 
 @RestController
@@ -20,7 +18,7 @@ public class ProductController {
     private ProductService productService;
 
     @PostMapping("/add")
-    public ResponseEntity<ApiResponse<ProductAddResponse>> addProduct(@RequestBody ProductDto productDto){
+    public ResponseEntity<ApiResponse<ProductAddResponse>> addProduct(@Valid @RequestBody ProductDto productDto){
         return productService.addProduct(productDto);
     }
 

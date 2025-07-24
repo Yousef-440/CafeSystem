@@ -2,9 +2,6 @@ package com.CafeSystem.cafe.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,7 +21,6 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Size(min = 3, max = 35, message = "The name must be between 3 and 35 characters long")
     private String name;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false, cascade = CascadeType.ALL)
@@ -33,8 +29,6 @@ public class Product {
 
     private String description;
 
-    @NotNull(message = "The price must be not null")
-    @DecimalMin(value = "1.5", message = "minimum price => '1.5'")
     private Double price;
 
     private String status;
