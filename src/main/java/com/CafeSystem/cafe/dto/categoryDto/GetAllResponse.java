@@ -25,4 +25,6 @@ public class GetAllResponse {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate modifiedAt;
 
+    private Long quantity;
+
 }

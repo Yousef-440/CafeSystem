@@ -20,4 +20,6 @@ public interface CategoryService {
     ResponseEntity<ApiResponse<UpdateCategoryResponseDto>> update(String name, int id);
 
     ResponseEntity<String> deleteCategoryById(int id);
+
+    ResponseEntity<ApiResponse<String>> numberOfCategory();
 }

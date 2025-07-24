@@ -5,9 +5,12 @@ import com.CafeSystem.cafe.dto.categoryDto.DtoCategory;
 import com.CafeSystem.cafe.dto.categoryDto.GetAllResponse;
 import com.CafeSystem.cafe.dto.categoryDto.UpdateCategoryResponseDto;
 import com.CafeSystem.cafe.dto.categoryDto.UpdateDataResponse;
-import com.CafeSystem.cafe.exception.HandleException;
+import com.CafeSystem.cafe.exception.DuplicateResourceException;
+import com.CafeSystem.cafe.exception.ResourceNotFoundException;
+import com.CafeSystem.cafe.exception.UnauthorizedException;
 import com.CafeSystem.cafe.model.Category;
 import com.CafeSystem.cafe.repository.CategoryRepository;
+import com.CafeSystem.cafe.repository.ProductRepository;
 import com.CafeSystem.cafe.service.CategoryService;
 import com.CafeSystem.cafe.utils.CafeUtil;
 import com.CafeSystem.cafe.utils.CurrentUserUtil;
@@ -21,83 +24,85 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class CategoryServiceImpl implements CategoryService {
+
     @Autowired
     private CategoryRepository categoryRepository;
+
     @Autowired
     private CurrentUserUtil currentUserUtil;
 
+    @Autowired
+    private ProductRepository productRepository;
+
+    private void checkAdminAccess() {
+        if (!currentUserUtil.isAdmin()) {
+            log.warn("Unauthorized access attempt");
+            throw new UnauthorizedException("Unauthorized access");
+        }
+    }
+
     @Override
     public ResponseEntity<String> addNewCategory(DtoCategory dtoCategory) {
-        log.info("addNewCategory function started");
-        try {
-            if (currentUserUtil.isAdmin()) {
+        log.info("addNewCategory started for name: {}", dtoCategory.getName());
 
-                boolean isExists = categoryRepository.existsByNameIgnoreCase(dtoCategory.getName());
-                if (isExists) {
-                    log.warn("Category with name {} is already exists", dtoCategory.getName());
-                    return CafeUtil.getResponseEntity("Category already exists", HttpStatus.INTERNAL_SERVER_ERROR);
-                }
+        checkAdminAccess();
 
-                Category category = Category.builder().name(dtoCategory.getName()).build();
-                categoryRepository.save(category);
-                log.info("Category Add successfully");
-                return CafeUtil.getResponseEntity("Added successfully", HttpStatus.OK);
-            }else{
-                log.warn("Current user does not have permission to add a category.");
-                return CafeUtil.getResponseEntity("Unauthorized Access", HttpStatus.FORBIDDEN);
-            }
-        }catch (Exception ex){
-            log.error("Error occurred while adding category '{}'", dtoCategory.getName(), ex);
-            return CafeUtil.getResponseEntity("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+        if (categoryRepository.existsByNameIgnoreCase(dtoCategory.getName())) {
+            log.warn("Category '{}' already exists", dtoCategory.getName());
+            throw new DuplicateResourceException("Category already exists");
         }
+
+        Category category = Category.builder().name(dtoCategory.getName()).build();
+        categoryRepository.save(category);
+
+        log.info("Category '{}' added successfully", dtoCategory.getName());
+        return CafeUtil.getResponseEntity("Added successfully", HttpStatus.CREATED);
     }
 
     @Override
     public ResponseEntity<List<GetAllResponse>> getAllCategory() {
-        List<Category> all = categoryRepository.findAll();
+        List<Category> categories = categoryRepository.findAll();
 
-        List<GetAllResponse> allDto = all.stream()
-                .map(category ->new GetAllResponse(
-                        category.getId(),
-                        category.getName(),
-                        category.getCreatedAt(),
-                        category.getModifiedAt()))
+        List<GetAllResponse> responseList = categories.stream()
+                .map(category -> {
+                    Long count = productRepository.countProductsByCategoryName(category.getName());
+                    return new GetAllResponse(
+                            category.getId(),
+                            category.getName(),
+                            category.getCreatedAt(),
+                            category.getModifiedAt(),
+                            count
+                    );
+                })
                 .toList();
-
-        return new ResponseEntity<>(allDto, HttpStatus.OK);
+        return new ResponseEntity<>(responseList, HttpStatus.OK);
     }
+
 
     @Override
-    public Page<Category> searchCategories(int offset,int limit,String keyword) {
-        Pageable pageable = PageRequest.of(offset, limit);
-        if (keyword == null || keyword.trim().isEmpty()){
-            return categoryRepository.findAll(pageable);
-        }
-        return categoryRepository.searchCategory(keyword,pageable);
+    public Page<Category> searchCategories(int page, int size, String keyword) {
+        Pageable pageable = PageRequest.of(page, size);
+        return (keyword == null || keyword.trim().isEmpty())
+                ? categoryRepository.findAll(pageable)
+                : categoryRepository.searchCategory(keyword, pageable);
     }
+
     @Override
     public ResponseEntity<ApiResponse<UpdateCategoryResponseDto>> update(String name, int id) {
-        log.info("Update Function is Started");
+        log.info("Update category started: id={}, newName={}", id, name);
 
-        if (!currentUserUtil.isAdmin()) {
-            log.warn("Unauthorized access to update category.");
-            throw new HandleException("Unauthorized access");
-        }
+        checkAdminAccess();
 
-        Category category = categoryRepository.findById(id).orElseThrow(
-                () -> new HandleException("Category with ID " + id + " not found.")
-        );
-
-        log.info("Category found: {}", category.getName());
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category with ID " + id + " not found."));
 
         if (category.getName().equalsIgnoreCase(name)) {
-            log.warn("No changes detected. Category name is already '{}'", name);
-            throw new HandleException("Category already has this name.");
+            log.warn("No changes detected. Same name: '{}'", name);
+            throw new DuplicateResourceException("Category already has this name.");
         }
 
         UpdateDataResponse oldData = UpdateDataResponse.builder()
@@ -130,18 +135,31 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public ResponseEntity<String> deleteCategoryById(int id) {
-        log.info("deleteCategory Function Started");
-        if(!currentUserUtil.isAdmin()){
-            log.warn("Unauthorized access");
-            throw new HandleException("Unauthorized access");
-        }
-        Category category = categoryRepository.findById(id).orElseThrow(
-                ()->new HandleException("Category Not Found")
-        );
+        log.info("deleteCategoryById started for ID: {}", id);
+
+        checkAdminAccess();
+
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + id));
 
         categoryRepository.deleteById(id);
-        String str = "Category By { " + category.getName().toUpperCase() + " } Was Deleted Successfully";
-        log.info(str);
-        return new ResponseEntity<>(str,HttpStatus.OK);
+
+        String message = "Category { " + category.getName().toUpperCase() + " } was deleted successfully";
+        log.info(message);
+        return new ResponseEntity<>(message, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<String>> numberOfCategory() {
+        Integer allCategoryName = categoryRepository.countOfCategory();
+        String message = "total number of Categories is: " + allCategoryName;
+
+        ApiResponse response = ApiResponse.builder()
+                .status("success")
+                .message("count-Of-Category")
+                .data(message)
+                .build();
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

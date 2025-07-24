@@ -36,6 +36,11 @@ public class CategoryController {
     @Autowired
     private CurrentUserUtil currentUserUtil;
 
+    @GetMapping(path = "/count")
+    public ResponseEntity<ApiResponse<String>> numberOfCategory(){
+        return categoryService.numberOfCategory();
+    }
+
     @Operation(
             summary = "add categories",
             description = "Add products and for every product" +

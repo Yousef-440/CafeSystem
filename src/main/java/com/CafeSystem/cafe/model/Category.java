@@ -26,7 +26,6 @@ import java.util.List;
 @DynamicInsert
 @Entity
 public class Category implements Serializable {
-    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

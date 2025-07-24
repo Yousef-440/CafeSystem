@@ -2,6 +2,7 @@ package com.CafeSystem.cafe.service.serviceImpl;
 
 import com.CafeSystem.cafe.dto.*;
 import com.CafeSystem.cafe.dto.ApiResponse;
+import com.CafeSystem.cafe.enumType.RoleType;
 import com.CafeSystem.cafe.enumType.StatusType;
 import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.mapper.UserMapper;
@@ -173,6 +174,10 @@ public class UserServiceImpl implements UserService {
                     log.error("Status update failed - User with ID {} not found", userId);
                     return new HandleException("User not found with ID: " + userId);
                 });
+
+        if (user.getRole() == RoleType.ADMIN) {
+            throw new HandleException("Administrators are not allowed to modify other admin accounts.");
+        }
 
         StatusType newStatus;
         try {
