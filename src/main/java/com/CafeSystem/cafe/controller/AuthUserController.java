@@ -45,10 +45,15 @@ public class AuthUserController {
 
     // ===================== SignUp =====================
 
+    // ===================== Verification Email =====================
+
     @GetMapping("/verify")
     public ResponseEntity<String> verifyEmail(@RequestParam("token") String token){
         return userService.verifyEmail(token);
     }
+
+    // ===================== Verification Email =====================
+
 
     @Operation(
             summary = "Login",
