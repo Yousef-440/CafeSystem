@@ -3,6 +3,7 @@ package com.CafeSystem.cafe.service.email;
 import com.CafeSystem.cafe.model.User;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,6 @@ import org.thymeleaf.TemplateEngine;
 
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import org.thymeleaf.context.Context;
@@ -24,13 +24,11 @@ import org.thymeleaf.context.Context;
 
 
 @Service
+@RequiredArgsConstructor
 public class EmailService {
-    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
-    @Autowired
-    private JavaMailSender mailSender;
 
-    @Autowired
-    private TemplateEngine templateEngine;
+    private final JavaMailSender mailSender;
+    private final TemplateEngine templateEngine;
 
     @Value("${GMAIL_APP_EMAIL}")
     private String fromEmail;
@@ -93,6 +91,9 @@ public class EmailService {
         mailSender.send(mimeMessage);
     }
 
+
+    // ===================== Send When User Register  =====================
+
     public void sendWhenSignup(String to, String subject, String name, String url) throws MessagingException{
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
@@ -111,6 +112,11 @@ public class EmailService {
 
         mailSender.send(message);
     }
+
+    // ===================== Send When User Register  =====================
+
+
+
 
     public void sendWhenChangePassword(String to, String name) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();

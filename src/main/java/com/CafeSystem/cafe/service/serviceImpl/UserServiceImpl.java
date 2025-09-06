@@ -47,7 +47,7 @@ public class UserServiceImpl implements UserService {
     public Page<UserProfileDto> AllUserAndAdmin(int page, int limit) {
         log.info("AllUserAndAdmin Function STARTED");
 
-        if (userPrincipal.isAdmin()) {
+//        if (userPrincipal.isAdmin()) {
             log.info("Admin accessed getAll endpoint");
             Pageable pageable = PageRequest.of(page, limit);
             Page<User> all = userRepository.findAll(pageable);
@@ -55,10 +55,10 @@ public class UserServiceImpl implements UserService {
 
             return all.map(userMapper::mapToUserProfileDto);
 
-        } else {
-            log.warn("Unauthorized access attempt to getAllUsersAndAdmin");
-            throw new HandleException("Unauthorized: Only 'Admin' can access this");
-        }
+//        } else {
+//            log.warn("Unauthorized access attempt to getAllUsersAndAdmin");
+//            throw new HandleException("Unauthorized: Only 'Admin' can access this");
+//        }
     }
 
     @Override

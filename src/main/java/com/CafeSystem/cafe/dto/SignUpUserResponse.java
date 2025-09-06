@@ -9,9 +9,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
-@Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Data
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SignUpUserResponse {

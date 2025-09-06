@@ -14,24 +14,36 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 
-@Slf4j
-@Tag(name = "Authentication User Controller", description = "Create new account and login," +
-        " forget your password and change your password")
+@Tag(
+        name = "Authentication User Controller",
+        description = "APIs for user authentication and account management:" +
+                " signup, login, password reset, and password change."
+)
+
+
 @RestController
 @RequestMapping(path = "/api/v1/user")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthUserController {
     private final AuthUserService userService;
 
+    // ===================== SignUp =====================
+
     @Operation(
-            summary = "Create new account",
-            description = "To create a new account, the user must enter the name," +
-                    " email, phone-number and password."
+            summary = "Register a new user account",
+            description = "This endpoint allows users to create a new account by providing their full name, " +
+                    "email address, phone number, and a strong password. " +
+                    "All fields are required. The password must meet security standards, " +
+                    "and the email must be unique. Proper validation messages will be returned for any errors."
     )
+
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<SignUpUserResponse>> signup(@Valid @RequestBody SignUpUserDto signUpUserDto) throws MessagingException {
         return userService.signup(signUpUserDto);
     }
+
+    // ===================== SignUp =====================
 
     @GetMapping("/verify")
     public ResponseEntity<String> verifyEmail(@RequestParam("token") String token){

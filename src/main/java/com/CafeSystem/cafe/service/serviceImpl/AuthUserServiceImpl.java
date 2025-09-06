@@ -4,6 +4,7 @@ import com.CafeSystem.cafe.dto.*;
 import com.CafeSystem.cafe.dto.ApiResponse;
 import com.CafeSystem.cafe.enumType.RoleType;
 import com.CafeSystem.cafe.enumType.StatusType;
+import com.CafeSystem.cafe.exception.DuplicateResourceException;
 import com.CafeSystem.cafe.exception.HandleException;
 import com.CafeSystem.cafe.mapper.UserMapper;
 import com.CafeSystem.cafe.model.PasswordResetToken;
@@ -59,74 +60,117 @@ public class AuthUserServiceImpl implements AuthUserService {
     private final RefreshTokenService refreshTokenService;
     private final UserDetailsService userDetailsService;
 
+    // ===================== SignUp =====================
+
     @Override
     @Transactional
     public ResponseEntity<ApiResponse<SignUpUserResponse>> signup(SignUpUserDto signUpUserDto) throws MessagingException {
         log.info("Starting signup process for email: {}", signUpUserDto.getEmail());
 
-        Optional<User> existingUser = userRepository.findByEmail(signUpUserDto.getEmail());
+        checkIfEmailExists(signUpUserDto.getEmail());
 
-        if (existingUser.isPresent()) {
-            log.warn("Signup failed: Email already exists - {}", signUpUserDto.getEmail());
-            throw new HandleException("Sorry, Email already exists");
-        }
-
-        User user = userMapper.toEntity(signUpUserDto);
-        user.setPassword(passwordEncoder.encode(signUpUserDto.getPassword()));
-        user.setRole(RoleType.USER);
+        User user = createUser(signUpUserDto);
 
         User savedUser = userRepository.save(user);
         log.info("User created successfully with ID: {} and email: {}", savedUser.getId(), savedUser.getEmail());
 
-        String token = UUID.randomUUID().toString();
-        UserVerificationToken userVerificationToken = UserVerificationToken.builder()
-                .token(token)
-                .user(user)
-                .expiryDate(LocalDateTime.now().plusHours(24))
-                .build();
-        userVerificationTokenRepository.save(userVerificationToken);
+        String token = createVerificationToken(savedUser);
 
-        String verifyUrl = "http://localhost:8081/api/v1/user/verify?token=" + token;
-        String subject = "Hello, " + signUpUserDto.getName();
-        emailService.sendWhenSignup(signUpUserDto.getEmail(),subject, signUpUserDto.getName(), verifyUrl);
+        sendVerificationEmail(signUpUserDto, token);
 
-
-        SignUpUserResponse signUpUserResponse = SignUpUserResponse.builder()
-                .message("Hello,Welcome to the Cafe, " + savedUser.getName() + "!")
-                .name(savedUser.getName())
-                .email(savedUser.getEmail())
-                .contactNumber(savedUser.getContactNumber())
-                .createdAt(savedUser.getCreatedAt().toLocalDate())
-                .build();
-
-        ApiResponse<SignUpUserResponse> response = ApiResponse.<SignUpUserResponse>builder()
-                .status("success")
-                .message("Account created successfully!")
-                .data(signUpUserResponse)
-                .build();
+        ApiResponse<SignUpUserResponse> response = buildSignupResponse(savedUser);
 
         log.info("Signup successfully for email: {}", savedUser.getEmail());
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    private void checkIfEmailExists(String email) {
+        if (userRepository.findByEmail(email).isPresent()) {
+            log.warn("Signup failed: Email already exists - {}", email);
+            throw new DuplicateResourceException("Sorry, Email already exists");
+        }
+    }
+
+    private User createUser(SignUpUserDto dto) {
+        User user = userMapper.toEntity(dto);
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setRole(RoleType.USER);
+        return user;
+    }
+
+    private String createVerificationToken(User user) {
+        String token = UUID.randomUUID().toString();
+        UserVerificationToken verificationToken = UserVerificationToken.builder()
+                .token(token)
+                .user(user)
+                .expiryDate(LocalDateTime.now().plusHours(24))
+                .build();
+        userVerificationTokenRepository.save(verificationToken);
+        return token;
+    }
+
+    private void sendVerificationEmail(SignUpUserDto dto, String token) throws MessagingException {
+        String verifyUrl = "http://localhost:8081/api/v1/user/verify?token=" + token;
+        String subject = "Hello, " + dto.getName();
+        emailService.sendWhenSignup(dto.getEmail(), subject, dto.getName(), verifyUrl);
+    }
+
+    private ApiResponse<SignUpUserResponse> buildSignupResponse(User user) {
+        SignUpUserResponse signUpUserResponse = SignUpUserResponse.builder()
+                .message("Hello, Welcome to the Cafe, " + user.getName() + "!")
+                .name(user.getName())
+                .email(user.getEmail())
+                .contactNumber(user.getContactNumber())
+                .createdAt(user.getCreatedAt().toLocalDate())
+                .build();
+
+        return ApiResponse.<SignUpUserResponse>builder()
+                .status("success")
+                .message("Account created successfully!")
+                .data(signUpUserResponse)
+                .build();
+    }
+
+
+    // ===================== SignUp =====================
+
+
+    // ===================== Verification Email =====================
+
     @Override
     public ResponseEntity<String> verifyEmail(String token) {
         log.info("Verification is started");
 
-       UserVerificationToken vToken = userVerificationTokenRepository.findByToken(token)
-               .orElseThrow(()->new HandleException("Invalid Token"));
+        UserVerificationToken vToken = getValidToken(token);
 
-        if (vToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+        if (isTokenExpired(vToken)) {
             log.warn("Token in verification is Token Expired");
             return ResponseEntity.badRequest().body("Token Expired");
         }
 
-        User user = vToken.getUser();
-        user.setStatus(StatusType.ACTIVE);
-        userRepository.save(user);
+        activateUser(vToken.getUser());
         log.info("Account is ACTIVE");
+
         return ResponseEntity.ok("Email Verified Successfully");
     }
+
+    private UserVerificationToken getValidToken(String token) {
+        return userVerificationTokenRepository.findByToken(token)
+                .orElseThrow(() -> new HandleException("Invalid Token"));
+    }
+
+    private boolean isTokenExpired(UserVerificationToken vToken) {
+        return vToken.getExpiryDate().isBefore(LocalDateTime.now());
+    }
+
+    private void activateUser(User user) {
+        user.setStatus(StatusType.ACTIVE);
+        userRepository.save(user);
+    }
+
+
+    // ===================== Verification Email =====================
+
 
     @Override
     public ResponseEntity<ApiResponse<LoginResponseData>> login(LoginRequest loginRequest) {

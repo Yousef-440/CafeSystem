@@ -34,6 +34,7 @@ public class SecurityConfiguration {
                                 "/api/v1/user/signup",
                                 "/api/v1/user/refresh",
                                 "/api/v1/user/verify",
+                                "/api/v1/user/getAll",
                                 "/api/v1/user/forgotPassword",
                                 "/api/v1/user/resetPassword",
                                 "/swagger-ui/**",
